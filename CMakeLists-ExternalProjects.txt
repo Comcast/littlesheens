@@ -1,0 +1,13 @@
+include(ExternalProject)
+
+set(DUK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/duktape")
+
+ExternalProject_Add(duktape
+    URL http://duktape.org/duktape-2.2.0.tar.xz
+    UPDATE_COMMAND ""
+    PATCH_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/duktape"
+    )

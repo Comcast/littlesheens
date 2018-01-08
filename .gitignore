@@ -1,0 +1,17 @@
+*~
+*.so
+*.a
+*.o
+mdemo
+mdemo.shared
+libmachines.h
+machines.js
+TAGS
+duktape
+.idea
+cmake-build-debug
+build
+machines_js.c
+duktape-*
+sheens
+crew.js
