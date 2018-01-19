@@ -75,8 +75,9 @@ static duk_ret_t sandbox(duk_context *ctx) {
 
   duk_context *box = duk_create_heap_default();
   duk_push_string(box, src);
-  if (duk_peval(box) != 0) {
-    /* ToDo: Something. */
+  int rc = duk_peval(box);
+  if (rc != DUK_EXEC_SUCCESS) {
+    return rc;
   }
   const char *result = duk_safe_to_string(box, -1);
   result = strdup(result);
@@ -85,7 +86,7 @@ static duk_ret_t sandbox(duk_context *ctx) {
   duk_push_string(ctx, result);
   free((char*) result); /* result was interned! */
 
-  return 1;
+  return MACH_OKAY;
 }
 
 /* API: mach_open, which is an exposed library function, creates the
@@ -125,8 +126,11 @@ void mach_close() {
 /* API: mach_eval, which is an exposed library function, evaluates the
    given string as ECMAScript in the global duktape heap. */
 int mach_eval(char *src, JSON dst, int limit) {
-  duk_eval_string(ctx, src);
-  int rc = copystr(dst, limit, (char*) duk_get_string(ctx, -1));
+  int rc = duk_peval_string(ctx, src);
+  if (rc != 0) {
+    return rc;
+  }
+  rc = copystr(dst, limit, (char*) duk_get_string(ctx, -1));
   duk_pop(ctx);
   return rc;
 }
