@@ -8,6 +8,8 @@
 #include "machines.h"
 
 char* readFile(const char *filename) {
+  fprintf(stderr, "readFile '%s'\n", filename);
+  
   char * buffer = 0;
   long length;
   FILE * f = fopen(filename, "rb");
@@ -32,7 +34,9 @@ char* readFile(const char *filename) {
 }
 
 char * specProvider(void *this, const char *specname, int mode) {
-  return readFile(specname);
+  char filename[4096];
+  snprintf(filename, sizeof(filename), "specs/%s", specname);
+  return readFile(filename);
   /* ToDo: Free ... */
 }
 

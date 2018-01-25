@@ -27,14 +27,17 @@ function sandboxedAction(ctx, bs, src) {
         "}\n" + 
 	"\n" + 
 	"var bs = (function(_) {\n" + src + "\n})(env);\n" +
-	"JSON.stringify({bs: bs, emitted: emitting});\n" + 
-	"\n";
+	"JSON.stringify({bs: bs, emitted: emitting});\n";
 
     try {
 	var result_js = sandbox(code);
-	return JSON.parse(result_js);
+	try {
+	    return JSON.parse(result_js);
+	} catch (e) {
+	    throw e + " on result parsing of '" + result_js + "'";
+	}
     } catch (e) {
-	print("walk error", e);
+	print("walk action sandbox error", e);
 	// Make a binding for the error so that branches could deal
 	// with the error.
 	//

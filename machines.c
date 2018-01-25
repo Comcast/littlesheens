@@ -67,27 +67,32 @@ int copystr(char *dst, int limit, char *src) {
    environment.  The given source code better return a string.  Needs
    a little work ... 
 
-   Also see https://github.com/svaarala/duktape/blob/master/doc/sandboxing.rst
+   Like various explicit/known limits and ... 
 
-   Like various explicit/known limits and ... */
+   Also see https://github.com/svaarala/duktape/blob/master/doc/sandboxing.rst
+*/
+
 static duk_ret_t sandbox(duk_context *ctx) {
   const char *src = duk_to_string(ctx, 0);
 
   duk_context *box = duk_create_heap_default();
   duk_push_string(box, src);
-  int rc = duk_peval(box);
-  if (rc != DUK_EXEC_SUCCESS) {
-    return rc;
-  }
+
+  duk_ret_t rc = duk_peval(box);
+  /* If we ran into an error, it's on the stack. */
   const char *result = duk_safe_to_string(box, -1);
   result = strdup(result);
+  if (rc != DUK_EXEC_SUCCESS) {
+    fprintf(stderr, "warning: sandbox returned non-zero rc=%d result=%s code:\n%s\n", rc, result, src);
+  }
 
   duk_destroy_heap(box);
   duk_push_string(ctx, result);
   free((char*) result); /* result was interned! */
 
-  return MACH_OKAY;
+  return 1; /* If non-zero, caller will see 'undefined'. */
 }
+
 
 /* API: mach_open, which is an exposed library function, creates the
    duktape heap, sets the binding for 'router' function, and maybe

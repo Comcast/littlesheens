@@ -27,7 +27,7 @@ char* readFile(const char *filename) {
 
   buffer[length-1] = 0;
 
-  printf("read %ld bytes from %s\n", length, filename);
+  printf("read %ld bytes from '%s'\n", length, filename);
 
   return buffer;
 }
