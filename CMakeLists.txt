@@ -1,41 +1,70 @@
 cmake_minimum_required(VERSION 3.2)
 
-set(CMAKE_C_FLAGS "-Wall -std=c99 -fno-asynchronous-unwind-tables -ffunction-sections -Wl,--gc-sections -fPIC")
+#*****************************************************************#
+# Create the master machine .js file. This file will
+# then be converted into a hex array that may be
+# compiled into a C file.
+#
+# TODO: The master file needs to be "minimized".
+#*****************************************************************#
 
-# 3rd party libraries (duktape)
-include(CMakeLists-ExternalProjects.txt)
-
-include_directories(${DUK_DIR}/src ${DUK_DIR}/extras/print-alert)
-
-add_library(machines SHARED
-        machines.c
-        objects.c
-        ${DUK_DIR}/src/duktape.c
-        ${DUK_DIR}/extras/print-alert/duk_print_alert.c)
-
-set_target_properties(machines PROPERTIES PUBLIC_HEADER "machines.h")
-
-add_dependencies(machines duktape)
-
-target_include_directories(machines PUBLIC ${CMAKE_SOURCE_DIR})
-
-add_executable(mdemo main.c)
-target_link_libraries(mdemo machines m)
-
-function(cat IN_FILE OUT_FILE)
-    file(READ ${IN_FILE} CONTENTS)
-    file(APPEND ${OUT_FILE} "${CONTENTS}")
-endfunction()
-
-# combine our js files into the big dude
 set(JSFILES "js/match.js" "js/sandbox.js" "js/step.js" "driver.js")
-foreach(JSFILE ${JSFILES})
-    cat(${JSFILE} machines.js)
-endforeach()
 
-install(TARGETS machines
-        LIBRARY DESTINATION lib
-        PUBLIC_HEADER DESTINATION include)
+add_custom_command(OUTPUT machines_js.c
+                   COMMAND cat ${JSFILES} > mach_machines_jssrc
+                   COMMAND xxd -i mach_machines_jssrc machines_js.c
+                   COMMAND ${CMAKE_COMMAND} -E echo "unsigned char* mach_machines_js() { return mach_machines_jssrc; }" >> machines_js.c
+                   COMMAND ${CMAKE_COMMAND} -E remove mach_machines_jssrc
+                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                   DEPENDS ${JSFILES}
+                   VERBATIM)
 
-install(TARGETS mdemo
-        DESTINATION bin)
+add_custom_target(littlesheens_js DEPENDS machines_js.c)
+
+#*****************************************************************#
+# The main library that will be generated for littlesheens.
+# This depends on Duktape being installed.
+#*****************************************************************#
+
+set(LITTLESHEENS_SOURCE
+    ${CMAKE_SOURCE_DIR}/machines.c
+    ${CMAKE_SOURCE_DIR}/objects.c
+    ${CMAKE_SOURCE_DIR}/machines_js.c)
+
+set(CMAKE_SHARED_LINKER_FLAGS "-L${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_SHARED_LINKER_FLAGS}")
+
+include_directories("${CMAKE_INSTALL_PREFIX}/include" "${CMAKE_INSTALL_PREFIX}/include/duktape")
+
+add_library(littlesheens SHARED ${LITTLESHEENS_SOURCE})
+
+# Force in the master .js file creation
+add_dependencies(littlesheens littlesheens_js)
+set_source_files_properties("${CMAKE_SOURCE_DIR}/machines_js.c" PROPERTIES GENERATED TRUE)
+
+target_include_directories(littlesheens PUBLIC ${CMAKE_SOURCE_DIR})
+
+set_target_properties(littlesheens PROPERTIES VERSION 1.0.0)
+
+install(TARGETS littlesheens LIBRARY DESTINATION lib)
+install(FILES ${CMAKE_SOURCE_DIR}/machines.h DESTINATION include/littlesheens)
+
+
+#*****************************************************************#
+# If we are NOT building through YOCTO then we want to build
+# a sample application.
+#*****************************************************************#
+
+if (NOT TARGET_PLATFORM STREQUAL "yocto")
+    set(CMAKE_C_FLAGS "-Wall -std=c99 -fno-asynchronous-unwind-tables -ffunction-sections -Wl,--gc-sections -fPIC ${CMAKE_C_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "-L${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_EXE_LINKER_FLAGS}")
+
+    # 3rd party libraries (duktape)
+    include(CMakeLists-ExternalProjects.txt)
+
+    add_dependencies(littlesheens duktape-ext)
+
+    add_executable(mdemo main.c)
+    target_link_libraries(mdemo littlesheens duktape m)
+
+    install(TARGETS mdemo DESTINATION bin)
+endif()
