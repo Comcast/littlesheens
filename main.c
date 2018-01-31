@@ -40,12 +40,15 @@ char* readFile(const char *filename) {
    spec hasn't changed, then the function should return NULL (per the
    API docs).
 
-   See Makefile for an example of converting YAML to JSON. */
+   See Makefile for an example of converting YAML to JSON. 
+
+   This demo spec provider appends ".js" to the name.
+*/
 char * specProvider(void *this, const char *specname, int mode) {
   printf("main spec provider specname: %s\n", specname);
 
   char file_name[4096];
-  snprintf(file_name, sizeof(file_name), "specs/%s", specname);
+  snprintf(file_name, sizeof(file_name), "specs/%s.js", specname);
 
   return readFile(file_name);
   /* ToDo: Free ... */

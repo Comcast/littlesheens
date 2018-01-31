@@ -1,8 +1,12 @@
 function Process(state_js, message_js) {
     try {
 	var state = JSON.parse(state_js);
+
+	// Don't do anything to the name of the spec that will be
+	// handed to the spec provider.  Let the spec provider do
+	// what's required.
+	var specFilename = state.spec;
 	
-	var specFilename = state.spec + ".js";
 	delete state.spec;
 	var spec_js = provider(specFilename);
 	var spec = JSON.parse(spec_js);
@@ -79,8 +83,7 @@ function CrewProcess(crew_js, message_js) {
 	for (var mid in crew.machines) {
 	    var machine = crew.machines[mid];
 
-	    var specFilename = machine.spec + ".js";
-	    var spec_js = provider(specFilename);
+	    var spec_js = provider(machine.spec);
 	    var spec = JSON.parse(spec_js);
 
 	    var state = {
