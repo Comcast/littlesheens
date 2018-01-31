@@ -1,8 +1,8 @@
-# A minimalist C library for working with Machines
+# A minimalist C library for working with Sheens
 
 ## Summary
 
-A minimalist [Machines](https://github.com/Comcast/sheens)
+A minimalist [Sheens](https://github.com/Comcast/sheens)
 implementation in ECMAScript that's executed by
 [Duktape](http://duktape.org/) and wrapped in a C library.  Yes, that
 does sound a little odd.
@@ -10,7 +10,7 @@ does sound a little odd.
 The stripped 32-bit demo executable is 360KB.  The supporting
 ECMAScript code (un-minified) is less than 20KB.
 
-See that [Machines repo](https://github.com/Comcast/sheens) for more
+See that [Sheens repo](https://github.com/Comcast/sheens) for more
 documentation about these machines.
 
 ## License
