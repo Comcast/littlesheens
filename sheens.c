@@ -35,7 +35,7 @@ char* readFile(const char *filename) {
 
 char * specProvider(void *this, const char *specname, int mode) {
   char filename[4096];
-  snprintf(filename, sizeof(filename), "specs/%s", specname);
+  snprintf(filename, sizeof(filename), "specs/%s.js", specname);
   return readFile(filename);
   /* ToDo: Free ... */
 }
