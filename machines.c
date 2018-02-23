@@ -9,6 +9,13 @@
    initialized by mach_open(). */
 duk_context *ctx;
 
+void mach_dump_stack(FILE *out, char *tag) {
+  duk_push_context_dump(ctx);
+  fprintf(out, "stack_dump %s\n%s\n", tag, duk_safe_to_string(ctx, -1));
+  duk_pop(ctx);
+}
+
+
 /* _provider is a global, shared C function that's invoked by
    providerer().  _provider is set by mach_set_spec_provider(). */
 provider _provider;

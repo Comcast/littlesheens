@@ -46,6 +46,8 @@ typedef char * (*provider)(void*, const char *, int);
 #define MACH_RESOLVE 0
 #define MACH_RESOLVE_IF_CHANGED
 
+void mach_dump_stack(FILE *out, char *tag);
+
 /* mach_set_spec_provider registers the given function so that
    mach_process can resolve the SpecName to a Spec. */
 void mach_set_spec_provider(void * ctx, provider f);
