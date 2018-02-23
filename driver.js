@@ -1,3 +1,21 @@
+var SpecCache = null;
+
+function GetSpec(filename) {
+    if (SpecCache) {
+	var cached = SpecCache[filename];
+	if (cached) {
+	    return cached;
+	}
+    }
+    var js = provider(filename);
+    var spec = JSON.parse(js);
+    Object.seal(spec);
+    if (SpecCache) {
+	SpecCache[filename] = spec;
+    }
+    return spec;
+}
+
 function Process(state_js, message_js) {
     try {
 	var state = JSON.parse(state_js);
@@ -8,9 +26,7 @@ function Process(state_js, message_js) {
 	var specFilename = state.spec;
 	
 	delete state.spec;
-	var spec_js = provider(specFilename);
-	var spec = JSON.parse(spec_js);
-	
+	var spec = GetSpec(machine.spec);
 	var message = JSON.parse(message_js);
 	
 	var stepped = walk(null, spec, state, message);
@@ -105,8 +121,7 @@ function CrewProcess(crew_js, message_js) {
 	    var mid = targets[i];
 	    var machine = crew.machines[mid];
 	    if (machine) {
-		var spec_js = provider(machine.spec);
-		var spec = JSON.parse(spec_js);
+		var spec = GetSpec(machine.spec);
 		
 		var state = {
 		    node: machine.node,

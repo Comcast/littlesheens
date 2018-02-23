@@ -54,7 +54,7 @@ cat<<EOF > crew.js
 EOF
 
 # Send messages to that crew.
-cat<<EOF | ./sheens
+cat<<EOF | ./sheens -d
 {"double":1}
 {"double":10}
 {"double":100}

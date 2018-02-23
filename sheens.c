@@ -4,11 +4,24 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include "machines.h"
 
+int logging = 0;
+
+void lgf(const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  if (logging) {
+    vfprintf(stderr, fmt, args);
+  }
+
+  va_end(args);
+}
+
 char* readFile(const char *filename) {
-  fprintf(stderr, "readFile '%s'\n", filename);
+  lgf("readFile '%s'\n", filename);
   
   char * buffer = 0;
   long length;
@@ -24,7 +37,7 @@ char* readFile(const char *filename) {
     }
     fclose(f);
   } else {
-    fprintf(stderr, "couldn't read '%s'\n", filename);
+    lgf("couldn't read '%s'\n", filename);
     exit(1);
   }
 
@@ -34,13 +47,20 @@ char* readFile(const char *filename) {
 }
 
 char * specProvider(void *this, const char *specname, int mode) {
+
   char filename[4096];
   snprintf(filename, sizeof(filename), "specs/%s.js", specname);
-  return readFile(filename);
-  /* ToDo: Free ... */
+  char * spec = readFile(filename);
+  return spec;
 }
 
 int main(int argc, char **argv) {
+
+  if (1 < argc) {
+    if (strcmp(argv[1], "-d") == 0) {
+      logging = 1;
+    }
+  }
 
   int rc = mach_open();
   if (rc != MACH_OKAY) {
@@ -71,11 +91,11 @@ int main(int argc, char **argv) {
       if (s == NULL) {
 	break;
       }
-      printf("in\t%s", line); /* Already has newline. */
+      lgf("in\t%s", line); /* Already has newline. */
 
       rc = mach_crew_process(crew, line, steppeds, dst_limit);
       if (rc == MACH_OKAY) {
-	printf("steps\t%s\n", steppeds);
+	lgf("steps\t%s\n", steppeds);
       } else {
 	printf("mach_crew_process error %d\n", rc);
 	exit(rc);
@@ -96,7 +116,7 @@ int main(int argc, char **argv) {
 
       rc = mach_crew_update(crew, steppeds, dst, dst_limit);
       if (rc == MACH_OKAY) {
-	printf("updated\t%s\n", dst);
+	lgf("updated\t%s\n", dst);
       } else {
 	  printf("update error %d\n", rc);
 	  exit(rc);
