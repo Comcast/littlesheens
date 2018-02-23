@@ -62,31 +62,38 @@ int mach_get_emitted(JSON steppeds, JSON dsts[], int most, size_t limit) {
   /* ToDo: Stop ignoring 'most'. */
   duk_get_global_string(ctx, "GetEmitted");
   duk_push_string(ctx, steppeds);
+  
+  int rc = MACH_OKAY;
+  
   if (duk_pcall(ctx, 1) == DUK_EXEC_SUCCESS) {
      duk_size_t i, n;
      n = duk_get_length(ctx, -1);
      for (i = 0; i < n; i++) {
        if (duk_get_prop_index(ctx, -1, i)) {
 	 const char * result = duk_safe_to_string(ctx, -1);
+	 duk_pop(ctx);
 	 int n = strlen(result);
 	 if (limit < n) {
-	   return MACH_TOO_BIG;
+	   rc = MACH_TOO_BIG;
+	   break;
 	 }
 	 strncpy(dsts[i], result, limit);
        } else {
 	 printf("error: no item at %d\n", (int) i);
        }
-       duk_pop(ctx);
      }
      for (; i < most; i++) {
        memset(dsts[i], 0, limit);
      }
-     return MACH_OKAY;
   } else {
     const char *result = duk_safe_to_string(ctx, -1);
     printf("error: %s\n", result);
     return MACH_SAD;
   }
+
+  duk_pop(ctx);
+
+  return rc;
 }
 
 int mach_crew_update(JSON crew, JSON stepped, JSON dst, size_t limit) {
