@@ -79,19 +79,42 @@ function CrewProcess(crew_js, message_js) {
 	var crew = JSON.parse(crew_js);
 	var message = JSON.parse(message_js);
 
+	// Optionally direct the message to a single machine as
+	// specified in the message's (optional) "to" property.  For
+	// example, if the message has the form {"to":"m42",...}, then
+	// that message will be sent to machine m42 only.  Generalize
+	// to accept an array: "to":["m42","m43"].
+
+	var targets = message.to;
+	if (targets) {
+	    // Routing to specific machine(s).
+	    if (typeof targets == 'string') {
+		targets = [targets];
+	    }
+	    print("driver CrewProcess routing", JSON.stringify(targets));
+	} else {
+	    // The entire crew will see this message.
+	    targets = []
+	    for (var mid in crew.machines) {
+		targets.push(mid);
+	    }
+	}
+
 	var steppeds = {};
-	for (var mid in crew.machines) {
+	for (var i = 0; i < targets.length; i++) {
+	    var mid = targets[i];
 	    var machine = crew.machines[mid];
-
-	    var spec_js = provider(machine.spec);
-	    var spec = JSON.parse(spec_js);
-
-	    var state = {
-		node: machine.node,
-		bs: machine.bs
-	    };
-
-	    steppeds[mid] = walk(null, spec, state, message);
+	    if (machine) {
+		var spec_js = provider(machine.spec);
+		var spec = JSON.parse(spec_js);
+		
+		var state = {
+		    node: machine.node,
+		    bs: machine.bs
+		};
+		
+		steppeds[mid] = walk(null, spec, state, message);
+	    } // Otherwise just move on.
 	}
 	
 	return JSON.stringify(steppeds);

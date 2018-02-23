@@ -67,6 +67,21 @@ EOF
 
 The above is in `demo.sh`.
 
+## Notes
+
+`driver.js` implements optional routing that can present a message
+only to machines specified in that message.  If a message has a `"to"`
+property, the value should be a string or an array of strings.  The
+message is then only presented to the machine or machines with those
+ids.
+
+For example, `{"to":"doubler","double":1}` will only be sent to a
+machine with id `doubler` (if it exists).  The message
+`{"to":["this","that"],...}` will only be presented to the machines
+with ids `this` and `that` (if they exist).  Note that the entire
+message (including the `"to"` property) is still present to the target
+machines.
+
 
 ## Code of Conduct
 
