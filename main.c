@@ -17,7 +17,10 @@ char* readFile(const char *filename) {
     fseek(f, 0, SEEK_SET);
     buffer = malloc(length);
     if (buffer) {
-      fread(buffer, 1, length, f);
+      long int n = fread(buffer, 1, length, f);
+      if (n != length) {
+	fprintf(stderr, "warning: readFile %s read %ld != %ld", filename, n, length);
+      }
     }
     fclose(f);
   } else {
