@@ -67,6 +67,33 @@ EOF
 
 The above is in `demo.sh`.
 
+## Utilities
+
+The `mdemo` executable will execute (`mach_eval`) code in files given
+on the command line.  The environment includes what's in the directory
+`js`, so you can experiment directly with those functions.  For
+example, if the file `check.js` contains
+
+```Javascript
+JSON.stringify(match(null, {"likes":"?x"}, {"likes":"tacos"}, {}));
+```
+
+Then
+
+```Shell
+./mdemo check.js
+```
+
+should write
+
+```Javascript
+[{"?x":"tacos"}]
+```
+
+Per the documentation for `mach_eval`, the code that's executed should
+return a string.
+
+
 ## Notes
 
 `driver.js` implements optional routing that can present a message
@@ -81,7 +108,6 @@ machine with id `doubler` (if it exists).  The message
 with ids `this` and `that` (if they exist).  Note that the entire
 message (including the `"to"` property) is still present to the target
 machines.
-
 
 ## Code of Conduct
 

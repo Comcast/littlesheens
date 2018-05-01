@@ -75,6 +75,8 @@ int main(int argc, char **argv) {
     int rc = mach_eval(src, dst, dst_limit);
     if (rc != MACH_OKAY) {
       printf("warning: mach_eval rc %d\n", rc);
+    } else {
+      printf("%s\n", dst);
     }
     free(src);
     free(dst);
