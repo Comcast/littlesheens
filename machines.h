@@ -57,19 +57,16 @@ void mach_set_spec_provider(void * ctx, provider f);
 void mach_set_ctx(void * ctx);
 
 /* mach_eval is a utilty function that executes the given ECMAScript
-   source and returns the result, which better be a string.  Return
-   the result rendered in JSON.
-   
-   This function should probably evolve to return an int and write a
-   given string. */
+   source and writes the result, which better be a string, to dst.
+   Returns MACH_OKAY on success.
+*/
 int mach_eval(char* src, char* dst, int limit);
 
 /* mach_match is a utility that does pattern matching.  Returns
-   bindings rendered as JSON.
-   
-   This function should probably evolve to return an int and write a
-   given string. */
-int mach_match(JSON pattern, JSON message, JSON bindings, JSON dst, int limit);
+   bindings rendered as JSON to dst.  Returns MACH_OKAY on success.
+*/
+int mach_match(JSON pattern, JSON message, JSON bindings, JSON dst,
+int limit);
 
 /* Experimental objects API below */
 
