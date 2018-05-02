@@ -137,9 +137,10 @@ var match = function() {
 	    } else {
 		var mv = m[k];
 		if (mv === undefined) {
-		    if (!isOptVar(v)) {
-			return [];
+		    if (isOptVar(v)) {
+			continue;
 		    }
+		    return [];
 		}
 		var acc = matchWithBindings(ctx, bss, v, mv)
 		if (acc.length == 0) {
@@ -151,6 +152,77 @@ var match = function() {
 	return bss;
     };
 
+    inequal = function(ctx,m,bs,v) {
+	if (!isVar(v)) {
+	    return {applied: false};
+	}
+	var x = bs[v];
+	if (x === undefined) {
+	    return {applied: false};
+	}
+	if ((typeof x) !== 'number') {
+	    return {applied: false};
+	}
+	if ((typeof m) !== 'number') {
+	    return {applied: false};
+	}
+	
+	var ieq, vv;
+	var ieqs = ["<=",">=","!=",">","<"];
+	for (var i = 0; i < ieqs.length; i++) {
+	    ieq = ieqs[i];
+	    if (v.substring(1, 1+ieq.length) == ieq) {
+		vv = "?" + v.substring(1+ieq.length);
+		break;
+	    } else {
+		ieq = null;
+	    }
+	}
+	if (!ieq) {
+	    return {applied: false};
+	}
+	
+	var satisfied = false;
+	switch (ieq) {
+	case "<":
+	    satisfied = m < x;
+	    break;
+	case "<=":
+	    satisfied = m <= x;
+	    break;
+	case ">":
+	    satisfied = m > x;
+	    break;
+	case ">=":
+	    satisfied = m >= x;
+	    break;
+	case "!=":
+	    satisfied = m != x;
+	    break;
+	default:
+	    throw "internal error: ieq=" + ieq;
+	}
+
+	if (!satisfied) {
+	    return {applied: true, bss: []};
+	}
+	
+	var vvx = bs[vv];
+	if (vvx !== undefined) {
+	    if ((typeof vvx) !== 'number') {
+		return {applied: false};
+	    }
+	    if (vvx != m) {
+		return {applied: true, bss: []};
+	    }
+	    return {applied: true, bss: [bs]};
+	}
+
+	bs[vv] = m;
+
+	return {applied: true, bss: [bs]};
+    };
+
     match = function(ctx,p,m,bs) {
 	if (!bs) {
 	    bs = [];
@@ -158,6 +230,10 @@ var match = function() {
 	if (isVar(p)) {
 	    if (isAnonymous(p)) {
 		return [bs];
+	    }
+	    var ieq = inequal(ctx, m, bs, p);
+	    if (ieq.applied) {
+		return ieq.bss;
 	    }
 	    var binding = bs[p];
 	    if (binding) {

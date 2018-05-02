@@ -1,4 +1,4 @@
-.PHONY: pkg demo
+.PHONY: pkg demo matchtest
 
 #CFLAGS=-Wall -std=c99 -flto -fno-asynchronous-unwind-tables -ffunction-sections -Wl,--gc-sections -m32 -g
 CFLAGS=-Wall -std=c99 -fno-asynchronous-unwind-tables -ffunction-sections -Wl,--gc-sections -g -fPIC
@@ -49,7 +49,11 @@ specs/double.js: specs/double.yaml
 
 demo:	mdemo specs/double.js
 
-test:	demo
+
+matchtest: mdemo match_test.js
+	./mdemo match_test.js | jq -r '.[]|select(.happy == false)|"\(.n): \(.case.title); wanted: \(.case.w) got: \(.got)"'
+
+test:	demo matchtest
 	valgrind --leak-check=full ./mdemo
 
 mdemo.shared: libmachines.so libduktape.so main.c Makefile

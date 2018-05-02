@@ -11,6 +11,34 @@ var tests = [
 	"doc": "A very basic test that shows how a pattern variable (`?likes`) gets bound during matching."
     },
     {
+	"title": "Variable with constant",
+	"p": {"likes":"?likes","when":"now"},
+	"m": {"likes":"tacos","when":"now"},
+	"w": [{"?likes":"tacos"}],
+	"doc": "A map with a variable and a constant."
+    },
+    {
+	"title": "Variable with constant (different order)",
+	"p": {"when":"now","likes":"?likes"},
+	"m": {"likes":"tacos","when":"now"},
+	"w": [{"?likes":"tacos"}],
+	"nodoc": true
+    },
+    {
+	"title": "Two constants",
+	"p": {"likes":"queso","when":"now"},
+	"m": {"likes":"queso","when":"now"},
+	"w": [{}],
+	"doc": "A map with two constants."
+    },
+    {
+	"title": "Two constants (different order)",
+	"p": {"when":"now","likes":"queso"},
+	"m": {"likes":"queso","when":"now"},
+	"w": [{}],
+	"nodoc": true
+    },
+    {
 	"title": "Multiple variables",
 	"p": {"likes":"?likes","wants":"?wants"},
 	"m": {"likes":"tacos","wants":"queso"},
@@ -39,6 +67,45 @@ var tests = [
 	"doc": "If you use a pattern variable more than once, then the bindings must agree.  See the previous example."
     },
     {
+	"title": "Array as a set",
+	"p": {"a":["?a"],"is":"?a"},
+	"m": {"a":[1,2,3,4],"is":3},
+	"w": [{"?a":3}],
+	"doc": "An array is treated as a set."
+    },
+    {
+	"title": "Array with a variable and a constant",
+	"p": ["a","?x"],
+	"m": ["a","b","c"],
+	"w": [{"?x":"b"},{"?x":"c"}],
+	"doc": "An array is treated as a set; multiple bindings possible."
+    },
+    {
+	"title": "Array with a variable and a map constant",
+	"p": [{"likes":"tacos"},"?x"],
+	"m": [{"likes":"tacos"},"b","c"],
+	"w": [{"?x":"b"},{"?x":"c"}]
+    },
+    {
+	"title": "Array with a variable and a constant; message with map elements",
+	"p": ["a", "b", "?x"],
+	"m": [{"likes":"tacos"},"b","a"],
+	"w": [{"?x":{"likes":"tacos"}}]
+    },
+    {
+	"title": "Array with a map containing a variable",
+	"p": ["a", "b", {"likes":"?x"}],
+	"m": [{"likes":"tacos"},{"likes":"chips"},"b","a"],
+	"w": [{"?x":"tacos"},{"?x":"chips"}]
+    },
+    {
+	"title": "Array as a set; multiple bss; backtracking",
+	"p": {"a":["?a"],"is":["?a"]},
+	"m": {"a":[1,2,3,4],"is":[2,3]},
+	"w": [{"?a":2},{"?a":3}],
+	"doc": "An array is treated as a set."
+    },
+    {
 	"title": "Bad array vars",
 	"p": {"a":["?x","?y"]},
 	"m": {"a":[1]},
@@ -58,20 +125,6 @@ var tests = [
 	"m": {"n":1, "m": 2},
 	"err": true,
 	"doc": "You can have _at most one_ pattern variable as a key in a given map."
-    },
-    {
-	"title": "Array as a set",
-	"p": {"a":["?a"],"is":"?a"},
-	"m": {"a":[1,2,3,4],"is":3},
-	"w": [{"?a":3}],
-	"doc": "An array is treated as a set."
-    },
-    {
-	"title": "Array as a set; multiple bss; backtracking",
-	"p": {"a":["?a"],"is":["?a"]},
-	"m": {"a":[1,2,3,4],"is":[2,3]},
-	"w": [{"?a":2},{"?a":3}],
-	"doc": "An array is treated as a set."
     },
     {
 	"title": "A null value",
@@ -299,6 +352,14 @@ var tests = [
 	"w": [{"?wanted":"tacos","??maybe":"queso"}]
     },
     {
+	"title": "Optional pattern variable (present, different order)",
+	"p": {"wants":"?wanted","a":"??maybe"},
+	"m": {"a":"queso","wants":"tacos"},
+	"b": {},
+	"w": [{"?wanted":"tacos","??maybe":"queso"}],
+	"nodoc": true
+    },
+    {
 	"title": "Optional pattern variable (array, absent)",
 	"p": ["??opt"],
 	"m": [],
@@ -318,17 +379,60 @@ var tests = [
 	"m": ["a","b","c"],
 	"b": {},
 	"w": [{"??opt":"c"}]
+    },
+    {
+	"title": "Optional pattern variable (array, present, multiple bindings)",
+	"p": ["??opt", "a", "b"],
+	"m": ["a","b","c","d"],
+	"b": {},
+	"w": [{"??opt":"c"},{"??opt":"d"}]
+    },
+    {
+	"title": "Optional pattern variable (array, present, multiple bindings, different order)",
+	"p": ["a","??opt", "b"],
+	"m": ["c","a","b","d"],
+	"b": {},
+	"w": [{"??opt":"c"},{"??opt":"d"}],
+	"nodoc": true
     }
 ];
 
 var acc = [];
+
+function canonicalBs(bs) {
+    var ps = [];
+    for (p in bs) {
+	ps.push(p);
+    }
+    ps.sort();
+    var acc = [];
+    for (var i = 0; i < ps.length; i++) {
+	var p = ps[i];
+	var v = bs[p];
+	acc.push([p,v]);
+    }
+    return acc;
+}
+
+function canonicalBss(bss) {
+    if (!bss) {
+	return "null";
+    }
+    var acc = [];
+    for (var i = 0; i < bss.length; i++) {
+	var bs = bss[i];
+	acc.push(JSON.stringify(canonicalBs(bs)));
+    }
+    acc.sort();
+    return JSON.stringify(acc);
+}
 
 for (var i = 0; i < tests.length; i++) {
     var test = tests[i];
     if (test.benchmarkOnly) {
 	continue;
     }
-    var result = {"n": i, "case": test};
+    var result = {"n": i+1, "case": test};
     if (test.b === undefined) {
 	test.b = {};
     }
@@ -337,10 +441,13 @@ for (var i = 0; i < tests.length; i++) {
     try {
 	var bss = match(null, test.p, test.m, test.b);
 	result.bss = bss;
-	result.happy = JSON.stringify(bss) == JSON.stringify(test.w);
+	result.happy = canonicalBss(bss) == canonicalBss(test.w);
+	result.got = canonicalBss(bss);
+	result.wanted = canonicalBss(test.w);
     } catch (e) {
 	if (!test.err) {
-	    result.err = e;
+	    print("" + e);
+	    result.err = "" + e;
 	    result.happy = false;
 	}
     }
