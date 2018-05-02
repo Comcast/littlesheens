@@ -5,7 +5,7 @@
 #include "machines.h"
 
 char* readFile(const char *filename) {
-  printf("reading '%s'\n", filename);
+  fprintf(stderr, "reading '%s'\n", filename);
   
   char * buffer = 0;
   long length;
@@ -30,7 +30,7 @@ char* readFile(const char *filename) {
 
   buffer[length-1] = 0;
 
-  printf("read %ld bytes from '%s'\n", length, filename);
+  fprintf(stderr, "read %ld bytes from '%s'\n", length, filename);
 
   return buffer;
 }
