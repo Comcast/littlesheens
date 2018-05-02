@@ -329,6 +329,9 @@ for (var i = 0; i < tests.length; i++) {
 	continue;
     }
     var result = {"n": i, "case": test};
+    if (test.b === undefined) {
+	test.b = {};
+    }
     acc.push(result);
     
     try {

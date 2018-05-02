@@ -34,11 +34,13 @@ var match = function() {
 
     var extend = function(bs, b, v) {
 	var acc = copyMap(bs);
-	if (isAnonymous(b)) {
-	    return acc;
-	}
 	acc[b] = v;
 	return acc;
+    };
+
+    var dbg = function(tag, x) {
+	print(tag + " " + JSON.stringify(x));
+	return x;
     };
 
     var match;
@@ -47,18 +49,12 @@ var match = function() {
 	var acc = [];
 	for (var i = 0; i < bss.length; i++) {
 	    var bs = bss[i];
-	    acc = acc.concat(match(ctx, v, mv, bs))
+	    acc = acc.concat(match(ctx, v, mv, bs));
 	}
 	return acc;
     };
 
-    var dbg = function(tag, x) {
-	// print(tag + " " + JSON.stringify(x));
-    };
-
     var arraycatMatch = function(ctx, bss, p, m, varCount) {
-	dbg("arraycatMatch", {p: p, m: m, bss: bss});
-
 	if (varCount === undefined) {
 	    varCount = 0;
 	}
@@ -85,7 +81,7 @@ var match = function() {
 	    }
 	    varCount++;
 	}
-	dbg("y", y);
+
 	var acc = []; // Accumulate sets of output bindings.
 	for (var i = 0; i < bss.length; i++) {
 	    var bs = bss[i];
@@ -95,7 +91,6 @@ var match = function() {
 	    for (var j = 0; j < m.length; j++) {
 		var x = m[j];
 		var bss_ = match(ctx, y, x, bs);
-		dbg("match", {x:x,y:y,bs:bs,bss:bss_});
 		// Filter bindings based on remaining pattern and the
 		// message with the current element removed.  This
 		// approach is probably not optimal, but it's easier
@@ -109,29 +104,49 @@ var match = function() {
 		}
 	    }
 	    if (!some && isOptVar(y)) {
-		dbg("opt", {y:y,bs:bs});
 		acc.push(bs);
 	    }
 	}
 
-	dbg("->", {acc: acc, bss: bss, p: p, m: m});
 	return acc;
     };
 
     var mapcatMatch = function(ctx, bss, p, m) {
+	var varCount = 0;
 	for (k in p) {
 	    var v = p[k];
-	    var mv = m[k];
-	    if (mv === undefined) {
-		if (!isOptVar(v)) {
+	    if (isVar(k)) {
+		if (0 < varCount) {
+		    throw "can't have more than one property variable";
+		}
+		varCount++;
+		var acc = [];
+		for (var mk in m) {
+		    var mv = m[mk];
+		    var ext = matchWithBindings(ctx, copyArray(bss), k, mk);
+		    if (ext.length == 0) {
+			continue;
+		    }
+		    ext = matchWithBindings(ctx, ext, v, mv);
+		    if (ext.length == 0) {
+			continue;
+		    }
+		    acc = acc.concat(ext); 
+		}
+		bss = acc;
+	    } else {
+		var mv = m[k];
+		if (mv === undefined) {
+		    if (!isOptVar(v)) {
+			return [];
+		    }
+		}
+		var acc = matchWithBindings(ctx, bss, v, mv)
+		if (acc.length == 0) {
 		    return [];
 		}
+		bss = acc;
 	    }
-	    var acc = matchWithBindings(ctx, bss, v, mv)
-	    if (acc.length == 0) {
-		return [];
-	    }
-	    bss = acc;
 	}
 	return bss;
     };
@@ -141,6 +156,9 @@ var match = function() {
 	    bs = [];
 	}
 	if (isVar(p)) {
+	    if (isAnonymous(p)) {
+		return [bs];
+	    }
 	    var binding = bs[p];
 	    if (binding) {
 		return match(ctx, binding, m, bs);
@@ -170,7 +188,7 @@ var match = function() {
 		    return [];
 		}
 	    default:
-		if (p == m) {
+		if (p === m) {
 		    return [bs];
 		}
 		return [];
