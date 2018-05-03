@@ -31,10 +31,6 @@ set(LITTLESHEENS_SOURCE
     ${CMAKE_SOURCE_DIR}/objects.c
     ${CMAKE_SOURCE_DIR}/machines_js.c)
 
-set(CMAKE_SHARED_LINKER_FLAGS "-L${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_SHARED_LINKER_FLAGS}")
-
-include_directories("${CMAKE_INSTALL_PREFIX}/include" "${CMAKE_INSTALL_PREFIX}/include/duktape")
-
 add_library(littlesheens SHARED ${LITTLESHEENS_SOURCE})
 
 # Force in the master .js file creation
@@ -55,16 +51,24 @@ install(FILES ${CMAKE_SOURCE_DIR}/machines.h DESTINATION include/littlesheens)
 #*****************************************************************#
 
 if (NOT TARGET_PLATFORM STREQUAL "yocto")
-    set(CMAKE_C_FLAGS "-Wall -std=c99 -fno-asynchronous-unwind-tables -ffunction-sections -Wl,--gc-sections -fPIC ${CMAKE_C_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS "-L${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_EXE_LINKER_FLAGS}")
+  include_directories("${CMAKE_INSTALL_PREFIX}/include" "${CMAKE_INSTALL_PREFIX}/include/duktape")
 
-    # 3rd party libraries (duktape)
-    include(CMakeLists-ExternalProjects.txt)
+  if (NOT TARGET_PLATFORM STREQUAL "darwin")
+    set(CMAKE_C_FLAGS "-Wl,--gc-sections ${CMAKE_C_FLAGS}")
+  endif()
 
-    add_dependencies(littlesheens duktape-ext)
+  set(CMAKE_C_FLAGS "-Wall -std=c99 -fno-asynchronous-unwind-tables -ffunction-sections -fPIC ${CMAKE_C_FLAGS}")
+  set(CMAKE_SHARED_LINKER_FLAGS "-L${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_SHARED_LINKER_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "-L${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_EXE_LINKER_FLAGS}")
 
-    add_executable(mdemo main.c)
-    target_link_libraries(mdemo littlesheens duktape m)
+  # 3rd party libraries (duktape)
+  include(CMakeLists-ExternalProjects.txt)
 
-    install(TARGETS mdemo DESTINATION bin)
+  add_dependencies(littlesheens duktape-ext)
+  target_link_libraries(littlesheens duktape)
+
+  add_executable(mdemo main.c)
+  target_link_libraries(mdemo littlesheens duktape m)
+
+  install(TARGETS mdemo DESTINATION bin)
 endif()
