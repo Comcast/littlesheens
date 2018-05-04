@@ -51,7 +51,8 @@ demo:	mdemo specs/double.js
 
 
 matchtest: mdemo match_test.js
-	./mdemo match_test.js | jq -r '.[]|select(.happy == false)|"\(.n): \(.case.title); wanted: \(.case.w) got: \(.got)"'
+	./mdemo match_test.js | tee match_test.results.js | jq -r '.[]|select(.happy == false)|"\(.n): \(.case.title); wanted: \(.case.w) got: \(.got)"'
+	cat match_test.results.js | jq -r '.[]|"\(.n): elapsed: \(.bench.elapsed)ms (\(.bench.rounds) rounds) \(.case.title)"'
 
 test:	demo matchtest
 	valgrind --leak-check=full ./mdemo
