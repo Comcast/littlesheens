@@ -15,3 +15,4 @@ machines_js.c
 duktape-*
 sheens
 crew.js
+match_test.results.js

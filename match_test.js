@@ -439,11 +439,23 @@ for (var i = 0; i < tests.length; i++) {
     acc.push(result);
     
     try {
+	var rounds = 1000;
+	result.bench = {rounds: rounds, elapsed: 0};
+
 	var bss = match(null, test.p, test.m, test.b);
 	result.bss = bss;
 	result.happy = canonicalBss(bss) == canonicalBss(test.w);
 	result.got = canonicalBss(bss);
 	result.wanted = canonicalBss(test.w);
+
+	// Benchmark
+	
+	var then = Date.now();
+	for (var b = 0; b < rounds; b++) {
+	    match(null, test.p, test.m, test.b);
+	}
+	result.bench.elapsed = Date.now() - then;
+
     } catch (e) {
 	if (!test.err) {
 	    print("" + e);
