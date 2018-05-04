@@ -440,7 +440,7 @@ for (var i = 0; i < tests.length; i++) {
     
     try {
 	var rounds = 1000;
-	result.bench = {rounds: rounds, elapsed: 0};
+	result.bench = {rounds: null, elapsed: null};
 
 	var bss = match(null, test.p, test.m, test.b);
 	result.bss = bss;
@@ -454,6 +454,7 @@ for (var i = 0; i < tests.length; i++) {
 	for (var b = 0; b < rounds; b++) {
 	    match(null, test.p, test.m, test.b);
 	}
+	result.bench.rounds = rounds;
 	result.bench.elapsed = Date.now() - then;
 
     } catch (e) {
