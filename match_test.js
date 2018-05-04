@@ -429,9 +429,6 @@ function canonicalBss(bss) {
 
 for (var i = 0; i < tests.length; i++) {
     var test = tests[i];
-    if (test.benchmarkOnly) {
-	continue;
-    }
     var result = {"n": i+1, "case": test};
     if (test.b === undefined) {
 	test.b = {};
@@ -439,24 +436,30 @@ for (var i = 0; i < tests.length; i++) {
     acc.push(result);
     
     try {
-	var rounds = 1000;
-	result.bench = {rounds: null, elapsed: null};
+	try {
+	    // Benchmark
+	    var rounds = 1000;
+	    result.bench = {rounds: null, elapsed: null};
+	    var then = Date.now();
+	    for (var b = 0; b < rounds; b++) {
+		match(null, test.p, test.m, test.b);
+	    }
+	    result.bench.rounds = rounds;
+	    result.bench.elapsed = Date.now() - then;
+	} catch (e) {
+	}
+	
+	if (test.benchmarkOnly) {
+	    continue;
+	}
 
 	var bss = match(null, test.p, test.m, test.b);
 	result.bss = bss;
 	result.happy = canonicalBss(bss) == canonicalBss(test.w);
 	result.got = canonicalBss(bss);
 	result.wanted = canonicalBss(test.w);
-
-	// Benchmark
+	continue;
 	
-	var then = Date.now();
-	for (var b = 0; b < rounds; b++) {
-	    match(null, test.p, test.m, test.b);
-	}
-	result.bench.rounds = rounds;
-	result.bench.elapsed = Date.now() - then;
-
     } catch (e) {
 	if (!test.err) {
 	    print("" + e);
