@@ -3,15 +3,11 @@
 //
 // Returns {bs: BS, emitted: MESSAGES}.
 function sandboxedAction(ctx, bs, src) {
-    // ToDo: Different env for guards: no emitting.
-    
-    // ToDo: try/catch sandbox protection.
+    // This function calls a (presumably primitive) 'sandbox' function
+    // to do the actual work.  That function is probably in
+    // 'machines.c'.
 
-    // ToDo: A real sandbox! Should only have access to a new,
-    // standard ES5 (?) environment and whatever additional stuff
-    // specifically provided.  A sandbox environment should be
-    // discarded after use. Most likely will need a new primitive
-    // implemented in C.
+    // ToDo: Different env for guards: no emitting.
 
     if (!bs) {
 	bs = {};
