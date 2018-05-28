@@ -44,7 +44,6 @@ static duk_ret_t providerer(duk_context *ctx) {
   /* printf("bridge provider %s\n", s); */
   const char *result = _provider(_ctx, s, MACH_RESOLVE);
   duk_push_string(ctx, result);
-  free((char*)result);
   return 1;
 }
 
