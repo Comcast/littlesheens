@@ -41,6 +41,9 @@ If that works, you'll have an `mdemo` executable.
 
 ## Another demo
 
+This demo is a simple process that reads messages from `stdin` and
+writes output to `stdout`.
+
 ```Shell
 make sheens
 make specs/turnstile.js
@@ -66,6 +69,17 @@ EOF
 ```
 
 The above is in `demo.sh`.
+
+
+## Yet another demo
+
+This demo shows how to do some primitive Sheens work from Javascript
+(`demo.js`).
+
+```Shel
+make mdemo
+./mdemo driver.js demo.js
+```
 
 ## Utilities
 

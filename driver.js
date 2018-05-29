@@ -25,8 +25,8 @@ function Process(state_js, message_js) {
 	// what's required.
 	var specFilename = state.spec;
 	
+	var spec = GetSpec(state.spec);
 	delete state.spec;
-	var spec = GetSpec(machine.spec);
 	var message = JSON.parse(message_js);
 	
 	var stepped = walk(null, spec, state, message);
