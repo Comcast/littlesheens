@@ -8,7 +8,7 @@ function sandboxedAction(ctx, bs, src) {
     // 'machines.c'.
 
     // ToDo: Different env for guards: no emitting.
-    Times.tick("action");
+    Times.tick("sandbox");
 
     if (!bs) {
 	bs = {};
@@ -45,7 +45,7 @@ function sandboxedAction(ctx, bs, src) {
 	bs.error = e;
 	return {bs: bs, error: e};
     } finally {
-        Times.tock("action");
+        Times.tock("sandbox");
     }
 }
 

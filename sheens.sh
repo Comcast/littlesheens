@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 (for I in `seq 1000`; do echo "{\"double\":$I}"; echo '{"input":"push"}'; echo '{"input":"coin"}'; done) > sheens.input
 
 cat<<EOF > crew.js
@@ -9,9 +11,14 @@ cat<<EOF > crew.js
    "turnstile":{"spec":"turnstile","node":"locked","bs":{}}}}
 EOF
 
+echo "Processing $(cat sheens.input | wc -l) messages."
+echo "Using profiling and spec cache."
+
 make sheens && \
     time (cat sheens.input | \
 		 ./sheens -c -p | \
 		 tee sheens.output | \
-		 wc -l) && \
-    tail -5 sheens.output
+		 wc -l)
+
+echo "Emitted $(tail -3 sheens.output) messages."
+
