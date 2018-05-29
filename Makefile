@@ -55,7 +55,7 @@ matchtest: mdemo match_test.js
 	cat match_test.results.js | jq -r '.[]|"\(.n): elapsed \(.bench.elapsed)ms (\(.bench.rounds) rounds) \(.case.title)"'
 
 test:	demo matchtest
-	valgrind --leak-check=full ./mdemo
+	valgrind --leak-check=full --error-exitcode=1 ./mdemo
 
 mdemo.shared: libmachines.so libduktape.so main.c Makefile
 	gcc $(CFLAGS) -o mdemo.shared -I${DUK}/src main.c -L. -l:libmachines.so -l:libduktape.so -lm
