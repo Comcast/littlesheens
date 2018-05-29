@@ -10,6 +10,12 @@ function step(ctx,spec,state,message) {
     var bs = current;
     var emitted = [];
 
+    // The following strings are interpretered as aliases for our only
+    // actual interpreter, which is probably close to Ecmascript 5.1.
+    // "goja" is in this list for backwards compatability due to
+    // vestiges of github.com/Comcast/sheens history.
+    var interpreterAliases = ["ecmascript", "ecmascript-5.1", "goja"];
+
     var node = spec.nodes[state.node];
     if (!node) {
 	throw {error: "node not found", node: state.node};
@@ -17,7 +23,7 @@ function step(ctx,spec,state,message) {
 
     var action = node.action;
     if (action) {
-	if (action.interpreter != "goja") {
+	if (interpreterAliases.indexOf(action.interpreter) < 0) {
 	    throw {error: "bad interpreter", interpreter: action.interpreter};
 	}
 	var evaled = sandboxedAction(ctx, bs, action.source);
@@ -56,7 +62,7 @@ function step(ctx,spec,state,message) {
 	    bs = bss[0];
 	}
 	if (branch.guard) {
-	    if (branch.guard.interpreter != "goja") {
+	    if (interpreterAliases.indexOf(branch.guard.interpreter) < 0) {
 		throw {error: "bad guard interpreter", interpreter: branch.guard.interpreter};
 	    }
 	    var evaled = sandboxedAction(ctx, bs, branch.guard.source);
