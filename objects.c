@@ -23,6 +23,9 @@ int getResult(int nargs, JSON dst, size_t limit) {
     result = duk_safe_to_string(ctx, -1);
     printf("getResult serror %s\n", result);
   }
+  if (result == NULL) {
+    result = "";
+  }
   int n = strlen(result);
   int rc = MACH_OKAY;
   if (limit < n) {

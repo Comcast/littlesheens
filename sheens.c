@@ -47,7 +47,10 @@ char* readFile(const char *filename) {
 }
 
 char * specProvider(void *this, const char *specname, const char * cached) {
-
+  if (cached != NULL && cached[0]) {
+    return NULL;
+  }
+  
   char filename[4096];
   snprintf(filename, sizeof(filename), "specs/%s.js", specname);
   char * spec = readFile(filename);
