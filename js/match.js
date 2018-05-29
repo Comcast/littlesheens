@@ -272,6 +272,13 @@ var match = function() {
 	}
     };
 
-    return match;
+    return function(ctx,p,m,bs) {
+	Times.tick("match");
+	try {
+	    return match(ctx,p,m,bs);
+	} finally {
+	    Times.tock("match");
+	}
+    };
 }();
 

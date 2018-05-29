@@ -57,11 +57,30 @@ char * specProvider(void *this, const char *specname, const char * cached) {
   return spec;
 }
 
+void eval(char * src) {
+  size_t dst_limit = 16*1024;
+  char * dst = (char*) malloc(dst_limit);
+  int rc = mach_eval(src, dst, dst_limit);
+  if (rc != MACH_OKAY) {
+    printf("warning: %s rc %d\n", src, rc);
+  } else {
+    printf("%s\n", dst);
+  }
+  free(dst);
+}
+
 int main(int argc, char **argv) {
 
-  if (1 < argc) {
-    if (strcmp(argv[1], "-d") == 0) {
+  int useSpecCache = 0;
+  int profiling = 0;
+  for (int i = 1; i < argc; i++) {
+    char *arg = argv[i];
+    if (strcmp(arg, "-d") == 0) {
       logging = 1;
+    } else if (strcmp(arg, "-c") == 0) {
+      useSpecCache = 1;
+    } else if (strcmp(arg, "-p") == 0) {
+      profiling = 1;
     }
   }
 
@@ -71,7 +90,19 @@ int main(int argc, char **argv) {
     exit(rc);
   }
 
+  if (profiling) {
+    eval("Times.enable(); true;");
+  }
+
   mach_set_spec_provider(NULL, specProvider, MACH_FREE_FOR_PROVIDER);
+  if (useSpecCache) {
+    rc = mach_enable_spec_cache(1);
+    if (rc != MACH_OKAY) {
+      printf("mach_enable_spec_cache error %d\n", rc);
+      exit(rc);
+    }
+  }
+
 
   char *crew  = readFile("crew.js");
 
@@ -136,6 +167,9 @@ int main(int argc, char **argv) {
     free(crew);
   }
 
+  eval("'SpecCache: ' + JSON.stringify(SpecCache.summary())");
+  eval("'Stats:     ' + JSON.stringify(Stats)");
+  eval("'Times:     ' + JSON.stringify(Times.summary())");
 
   mach_close();
 }

@@ -1,13 +1,102 @@
-var SpecCache = null;
-var SpecCacheLimit = 128;
+var Stats = {
+    GetSpec: 0,
+    ParseSpec: 0,
+    Process: 0,
+    CrewProcess: 0,
+    CrewUpdate: 0,
+    SpecCacheHits: 0,
+    SpecCacheMisses: 0
+};
+
+var DefaultSpecCacheLimit = 128;
+
+var SpecCache = function() {
+    var enabled = false;
+    var entries = {};
+    var limit = DefaultSpecCacheLimit;
+    var size = 0;
+    var hits = 0, misses = 0;
+    var makeRoom = function(n) {
+	var keys = Object.keys(entries);
+	var evict = (size + n) - limit;
+	for (var i = 0; 0 < evict && i < keys.length; i++) {
+	    delete entries[keys[i]];
+	    size--;
+	    evict--;
+	}
+    };
+    return {
+	enable: function() {
+	    enabled = true;
+	},
+	disable: function() {
+	    enabled = false;
+	},
+	clear: function() {
+	    entries = {};
+	    size = 0;
+	    hits = 0;
+	    misses = 0;
+	},
+	setLimit: function(n) {
+	    limit = n;
+	    makeRoom(0);
+	},
+	add: function(k,v) {
+	    if (!enabled) {
+		return;
+	    }
+	    if (limit <= 0) {
+		return;
+	    }
+	    var existing = entries[k];
+	    var haveKey = false;
+	    if (existing) {
+		haveKey = true;
+	    }
+
+	    if (!haveKey) {
+		makeRoom(1);
+	    }
+	    if (!haveKey) {
+		size++;
+	    }
+	    entries[k] = v;
+	},
+	get: function(k) {
+	    if (!enabled) {
+		return null;
+	    }
+	    var v = entries[k];
+	    if (v) {
+		hits++;
+		Stats.SpecCacheHits++;
+	    } else {
+		misses++;
+		Stats.SpecCacheMisses++;
+	    }
+	    return v;
+	},
+	summary: function() {
+	    return {
+		size: size,
+		numberOfEntries: Object.keys(entries).length,
+		limit: limit,
+		hits: hits,
+		enabled: enabled,
+		misses: misses
+	    };
+	}
+    };
+}();
 
 function GetSpec(filename) {
+    Stats.GetSpec++;
+    
     // print("GetSpec " + filename + " (cache size " + SpecCacheLimit + ")");
     
-    var cached;
-    if (SpecCache) {
-	cached = SpecCache[filename];
-    }
+    var cached = SpecCache.get(filename);;
+
     var cachedString = "";
     if (cached) {
 	// print("GetSpec " + filename + " in cache");
@@ -30,22 +119,18 @@ function GetSpec(filename) {
     }
     
     var spec = JSON.parse(js);
+    Stats.ParseSpec++;
     Object.seal(spec);
-    if (SpecCache) {
-	SpecCache[filename] = {
+    SpecCache.add(filename, {
 	    spec: spec,
 	    string: js
-	};
-	if (SpecCacheLimit < Object.keys(SpecCache).length) {
-	    print("SpecCache limit " + SpecCacheLimit + " exceeded");
-	    delete SpecCache[filename]; // ToDo: LRU or somesuch.
-	}
-    }
+    });
 
     return spec;
 }
 
 function Process(state_js, message_js) {
+    Stats.Process++;
     try {
 	var state = JSON.parse(state_js);
 
@@ -119,6 +204,8 @@ function RemMachine(crew_js, id) {
 }
 
 function CrewProcess(crew_js, message_js) {
+    Stats.CrewProcess++;
+
     try {
 	
 	var crew = JSON.parse(crew_js);
@@ -169,6 +256,7 @@ function CrewProcess(crew_js, message_js) {
 }
 
 function CrewUpdate(crew_js, steppeds_js) {
+    Stats.CrewUpdate++;
     try {
 	
 	var crew = JSON.parse(crew_js);

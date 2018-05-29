@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
 
   {
     mach_set_spec_provider(NULL, specProvider, MACH_FREE_FOR_PROVIDER);
-    int rc = mach_set_spec_cache(32);
+    int rc = mach_set_spec_cache_limit(32);
     if (rc != MACH_OKAY) {
       printf("warning: failed to set spec cache size\n");
     }

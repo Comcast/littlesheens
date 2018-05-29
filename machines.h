@@ -106,8 +106,14 @@ int mach_crew_update(JSON crew, JSON steppeds, JSON dst, size_t limit) ;
    steppeds map (as written by mach_crew_process). */
 int mach_get_emitted(JSON steppeds, JSON dsts[], int most, size_t limit) ;
 
-/* mach_spec_cache initializes (or disables) the SpecCache. */
-int mach_set_spec_cache(int limit) ;
+/* mach_set_spec_cache sets the spec cache entries limit. */
+int mach_set_spec_cache_limit(int limit) ;
+
+/* mach_clear_spec_cache clears the spec cache. */
+int mach_clear_spec_cache() ;
+
+/* mach_enable_spec_cache enables (1) or disables (0) the spec cache. */
+int mach_enable_spec_cache(int enable) ;
 
 #ifdef __cplusplus
 }

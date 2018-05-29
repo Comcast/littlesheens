@@ -8,6 +8,7 @@ function sandboxedAction(ctx, bs, src) {
     // 'machines.c'.
 
     // ToDo: Different env for guards: no emitting.
+    Times.tick("action");
 
     if (!bs) {
 	bs = {};
@@ -43,6 +44,8 @@ function sandboxedAction(ctx, bs, src) {
 	// branching-based action error-handling.
 	bs.error = e;
 	return {bs: bs, error: e};
+    } finally {
+        Times.tock("action");
     }
 }
 

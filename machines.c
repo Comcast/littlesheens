@@ -151,6 +151,8 @@ void mach_close() {
 int mach_eval(char *src, JSON dst, int limit) {
   int rc = duk_peval_string(ctx, src);
   if (rc != 0) {
+    const char *err = duk_safe_to_string(ctx, -1);
+    fprintf(stderr, "mach_eval error %s\n", err);
     return rc;
   }
   rc = copystr(dst, limit, (char*) duk_get_string(ctx, -1));
@@ -170,7 +172,7 @@ int mach_process(JSON state, JSON message, JSON dst, int limit) {
     /* printf("mach_process result: %s\n", result); */
   } else {
     result = (JSON) duk_safe_to_string(ctx, -1);
-    printf("mach_process error: %s\n", result);
+    fprintf(stderr, "mach_process error: %s\n", result);
   }
   int rc = copystr(dst, limit, result);
   duk_pop(ctx);
@@ -191,32 +193,62 @@ int mach_match(JSON pattern, JSON message, JSON bindings, JSON dst, int limit) {
     /* printf("mach_match result: %s\n", result); */
   } else {
     result = (JSON) duk_safe_to_string(ctx, -1);
-    printf("mach_match error: %s\n", result);
+    fprintf(stderr, "mach_match error: %s\n", result);
   }
   int rc = copystr(dst, limit, result);
   duk_pop(ctx);
   return rc;
 }
 
-/* API: mach_set_spec_cache intializes or disables the spec cache
-   that's maintained in Javascript.  A cache limit less than or equal
-   to zero disables the cache. */
-int mach_set_spec_cache(int limit) {
-  if (limit <= 0) {
-    duk_push_null(ctx);
-  } else {
-    duk_push_object(ctx);
-  }
+/* API: mach_set_spec_cache_limit sets the spec cache limit.  This
+   function does NOT enable the cache if it is not already enabled.
 
-  int rc = duk_put_global_string(ctx, "SpecCache");
-  if (rc != 1) {
+   The default limit is 'DefaultSpecCacheLimit' in 'driver.js'. */
+int mach_set_spec_cache_limit(int limit) {
+  int rc = duk_get_global_string(ctx, "SpecCache");
+  if (rc == 0) { // Doesn't exist.
+    const char *err = duk_safe_to_string(ctx, -1);
+    fprintf(stderr, "mach_set_spec_cache_limit error %s\n", err);
     return MACH_SAD;
   }
-  
+  duk_push_string(ctx, "setLimit");
   duk_push_int(ctx, limit);
-  
-  rc = duk_put_global_string(ctx, "SpecCacheLimit");
-  if (rc != 1) {
+
+  rc = duk_pcall_prop(ctx, -3, 1);
+  if (rc != DUK_EXEC_SUCCESS) {
+    return MACH_SAD;
+  }
+
+  return MACH_OKAY;
+}
+
+/* API: mach_enable_spec_cache enables (1) or disables (0) the spec
+   cache. */
+int mach_enable_spec_cache(int enable) {
+  int rc;
+  if (enable) {
+    rc = duk_peval_string(ctx, "SpecCache.enable()");
+  } else {
+    rc = duk_peval_string(ctx, "SpecCache.disable()");
+  }
+
+  if (rc != 0) {
+    const char *err = duk_safe_to_string(ctx, -1);
+    fprintf(stderr, "mach_enable_spec_cache error %s\n", err);
+    return MACH_SAD;
+  }
+
+  return MACH_OKAY;
+}
+
+/* API: mach_clear_spec_cache empties the cache (and resets cache
+   statistics). */
+int mach_clear_spec_cache(int enable) {
+  int rc = duk_peval_string(ctx, "SpecCache.clear()");
+
+  if (rc != 0) {
+    const char *err = duk_safe_to_string(ctx, -1);
+    fprintf(stderr, "mach_clear_spec_cache error %s\n", err);
     return MACH_SAD;
   }
 

@@ -31,8 +31,8 @@ libmachines.so: CFLAGS += -fPIC
 libmachines.so: libmachines.a
 	$(CC) -shared -o $@ -Wl,--whole-archive $^ -Wl,--no-whole-archive
 
-machines.js: js/match.js js/sandbox.js js/step.js driver.js Makefile
-	cat js/match.js js/sandbox.js js/step.js driver.js > machines.js
+machines.js: js/match.js js/sandbox.js js/step.js js/prof.js driver.js Makefile
+	cat js/match.js js/sandbox.js js/step.js js/prof.js driver.js > machines.js
 
 machines_js.c: machines.js
 	minify machines.js > machines.js.terminated
