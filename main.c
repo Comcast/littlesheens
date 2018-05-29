@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include "machines.h"
 
@@ -57,6 +58,23 @@ char * specProvider(void *this, const char *specname, int mode) {
   /* ToDo: Free ... */
 }
 
+#define SUCCESS (0)
+
+void checkrc(int rc) {
+  if (rc != SUCCESS) {
+    printf("non-zero rc %d\n", rc);
+    exit(rc);
+  }
+}
+
+void rcprintf(int rc, char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  vprintf(fmt, args);
+  va_end(args);
+  checkrc(rc);
+}
+
 int main(int argc, char **argv) {
 
   int rc = mach_open();
@@ -101,7 +119,7 @@ int main(int argc, char **argv) {
        Note that we return a JSON representation of what we
        compute. */
     rc = mach_eval("JSON.stringify(1+2)", dst, dst_limit);
-    printf("eval [%d] %s\n", rc, dst);
+    rcprintf(rc, "eval %s\n", dst);
 
     /* The library function mach_process gives a message to a single
        machine.  See mach_crew_process for a function that gives a
@@ -117,7 +135,7 @@ int main(int argc, char **argv) {
 		      "{\"double\":10}", 
 		      dst, 
 		      dst_limit); 
-    printf("process [%d] %s\n",rc, dst);
+    rcprintf(rc, "process %s\n", dst);
 
     /* The library function mach_match is another utility function
        that probably would not be used in production.  This function
@@ -127,7 +145,7 @@ int main(int argc, char **argv) {
        zero or more bindings. */
 
     rc = mach_match("{\"wants\":\"?wants\"}", "{\"wants\":\"tacos\"}", "{}", dst, dst_limit);
-    printf("match [%d] %s\n", rc, dst);
+    rcprintf(rc, "match %s\n", dst);
 
     /* Make a crew object.  A crew is a set of machines. */
     char * crew = (char*) malloc(dst_limit);
@@ -135,7 +153,7 @@ int main(int argc, char **argv) {
     if (rc == MACH_OKAY) {
       printf("crew %s\n", crew);
     } else {
-      printf("rc %d\n", rc);
+      rcprintf(rc, "make_crew\n");
     }
       
     /* Add a machine to the crew.
@@ -159,7 +177,7 @@ int main(int argc, char **argv) {
     if (rc == MACH_OKAY) {
       printf("added %s\n", dst);
     } else {
-      printf("rc %d\n", rc);
+      rcprintf(rc, "set_machine\n");
     }
     /* Update our crew definition. */
     strcpy(crew, dst);
@@ -169,7 +187,7 @@ int main(int argc, char **argv) {
     if (rc == MACH_OKAY) {
       printf("removed %s\n", dst);
     } else {
-      printf("rc %d\n", rc);
+      rcprintf(rc, "rem_machine\n");
     }
     strcpy(crew, dst);
 
@@ -308,7 +326,7 @@ int main(int argc, char **argv) {
     if (rc == MACH_OKAY) {
       printf("processed %s\n", dst);
     } else {
-      printf("warning: mach_eval rc %d\n", rc);
+      rcprintf(rc, "mach_eval\n");
     }
 
     free(dst);
