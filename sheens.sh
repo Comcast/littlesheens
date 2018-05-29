@@ -14,11 +14,8 @@ EOF
 echo "Processing $(cat sheens.input | wc -l) messages."
 echo "Using profiling and spec cache."
 
-make sheens && \
-    time (cat sheens.input | \
-		 ./sheens -c -p | \
-		 tee sheens.output | \
-		 wc -l)
+make sheens && time (cat sheens.input | ./sheens -c -p > sheens.output)
 
-echo "Emitted $(tail -3 sheens.output) messages."
+echo "Emitted $(cat sheens.output | grep -e '^out' | wc -l) messages."
 
+tail -3 sheens.output
