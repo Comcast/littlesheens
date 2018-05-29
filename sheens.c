@@ -46,7 +46,7 @@ char* readFile(const char *filename) {
   return buffer;
 }
 
-char * specProvider(void *this, const char *specname, int mode) {
+char * specProvider(void *this, const char *specname, const char * cached) {
 
   char filename[4096];
   snprintf(filename, sizeof(filename), "specs/%s.js", specname);
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     exit(rc);
   }
 
-  mach_set_spec_provider(NULL, specProvider);
+  mach_set_spec_provider(NULL, specProvider, MACH_FREE_FOR_PROVIDER);
 
   char *crew  = readFile("crew.js");
 

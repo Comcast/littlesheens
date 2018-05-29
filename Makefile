@@ -54,7 +54,7 @@ matchtest: mdemo match_test.js
 	./mdemo match_test.js | tee match_test.results.js | jq -r '.[]|select(.happy == false)|"\(.n): \(.case.title); wanted: \(.case.w) got: \(.got)"'
 	cat match_test.results.js | jq -r '.[]|"\(.n): elapsed \(.bench.elapsed)ms (\(.bench.rounds) rounds) \(.case.title)"'
 
-test:	demo matchtest
+test:	demo sheens matchtest
 	valgrind --leak-check=full --error-exitcode=1 ./mdemo
 
 mdemo.shared: libmachines.so libduktape.so main.c Makefile
