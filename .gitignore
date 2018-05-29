@@ -16,3 +16,5 @@ duktape-*
 sheens
 crew.js
 match_test.results.js
+sheens.input
+sheens.output
