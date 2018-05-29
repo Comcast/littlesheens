@@ -48,13 +48,15 @@ char* readFile(const char *filename) {
 
    This demo spec provider appends ".js" to the name.
 */
-char * specProvider(void *this, const char *specname, int mode) {
+char * specProvider(void *this, const char *specname, const char *cached) {
   printf("main spec provider specname: %s\n", specname);
 
   char file_name[4096];
   snprintf(file_name, sizeof(file_name), "specs/%s.js", specname);
 
   return readFile(file_name);
+  /* ToDo: Consider 'cached'? */
+  
   /* ToDo: Free ... */
 }
 
@@ -83,7 +85,7 @@ int main(int argc, char **argv) {
     exit(rc);
   }
 
-  mach_set_spec_provider(NULL, specProvider);
+  mach_set_spec_provider(NULL, specProvider, FREE_FOR_PROVIDER);
 
   int i;
   for (i = 1; i < argc; i++) {

@@ -20,19 +20,25 @@ void mach_dump_stack(FILE *out, char *tag) {
    providerer().  _provider is set by mach_set_spec_provider(). */
 provider _provider;
 
+/* _free_for_provider is another beautiful, global, shared C function
+ * that tells providered() whether to free the provided string (among
+ * other things). */
+mode _provider_mode;
+
 /* _ctx is yet another global, shared C thing that currently is passed
    as the first argument to _provider.  Despite its name, _ctx has
    absolutely nothing to do with ctx.  Sorry.  _ctx is set by
    mach_set_ctx(). */
 void * _ctx;
 
-void mach_set_spec_provider(void * ctx, provider f) {
-  _ctx = ctx;
-  _provider = f;
-}
-
 void mach_set_ctx(void * ctx) {
   _ctx = ctx;
+}
+
+void mach_set_spec_provider(void * ctx, provider f, mode m) {
+  _ctx = ctx;
+  _provider = f;
+  _provider_mode = m;
 }
 
 /* providerer is a bridge function that is exposed in the ECMAScript
@@ -40,11 +46,16 @@ void mach_set_ctx(void * ctx) {
    'provider', the C function that's stored at _provider is
    invoked. */
 static duk_ret_t providerer(duk_context *ctx) {
-  const char *s = duk_to_string(ctx, 0);
+  const char *name = duk_to_string(ctx, 0);
+  const char *cached = duk_to_string(ctx, 1);
   /* printf("bridge provider %s\n", s); */
-  const char *result = _provider(_ctx, s, MACH_RESOLVE);
+  const char *result = _provider(_ctx, name, cached);
   duk_push_string(ctx, result);
-  free((char*)result);
+
+  if (result != NULL && _provider_mode & FREE_FOR_PROVIDER) {
+    free((char*)result);
+  }
+  
   return 1;
 }
 
@@ -109,7 +120,7 @@ int mach_open() {
 
   duk_print_alert_init(ctx, 0);
 
-  duk_push_c_function(ctx, providerer, 1);
+  duk_push_c_function(ctx, providerer, 2);
   duk_put_global_string(ctx, "provider");
 
   duk_push_c_function(ctx, sandbox, 1);

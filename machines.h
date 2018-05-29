@@ -35,6 +35,8 @@ void mach_close();
    Also see mach_crew_process. */
 int mach_process(JSON state, JSON message, JSON dst, int limit);
 
+typedef unsigned int mode;
+
 /* provider is the signature for a function that can resolve the given
    SpecName to Spec.  The first argument will be _ctx.  The second
    argument is a string that can be resolved to a spec.  The third
@@ -42,16 +44,17 @@ int mach_process(JSON state, JSON message, JSON dst, int limit);
    RESOLVE_IF_CHANGED.  The latter means that the function should
    return NULL if the Spec hasn't changed.  Otherwise the function
    should return the requested Spec. */
-typedef char * (*provider)(void*, const char *, int);
+typedef char * (*provider)(void*, const char *, const char *);
 
 #define MACH_RESOLVE 0
 #define MACH_RESOLVE_IF_CHANGED
+#define FREE_FOR_PROVIDER 1<<2
 
 void mach_dump_stack(FILE *out, char *tag);
 
 /* mach_set_spec_provider registers the given function so that
    mach_process can resolve the SpecName to a Spec. */
-void mach_set_spec_provider(void * ctx, provider f);
+void mach_set_spec_provider(void * ctx, provider f, mode m);
 
 /* mach_set_ctx does that. */
 void mach_set_ctx(void * ctx);

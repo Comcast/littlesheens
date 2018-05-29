@@ -1,18 +1,47 @@
-var SpecCache = null;
+var SpecCache = {};
+var SpecCacheLimit = 128;
 
 function GetSpec(filename) {
+    print("GetSpec " + filename);
+    
+    var cached;
     if (SpecCache) {
-	var cached = SpecCache[filename];
-	if (cached) {
-	    return cached;
-	}
+	cached = SpecCache[filename];
     }
-    var js = provider(filename);
+    var cachedString = "";
+    if (cached) {
+	print("GetSpec " + filename + " in cache");
+	cachedString = cached.string;
+    }
+    var js = provider(filename, cachedString);
+    // js can be null, the same as the given cachedString, or a new
+    // string.
+    
+    if (!js) {
+	if (cached) {
+	    return cached.spec;
+	}
+	var err = {filename: filename, error: "not provided"};
+	throw JSON.stringify({err: err, errstr: JSON.stringify(err)});
+    }
+
+    if (js == cachedString) {
+	return cached.spec;
+    }
+    
     var spec = JSON.parse(js);
     Object.seal(spec);
     if (SpecCache) {
-	SpecCache[filename] = spec;
+	SpecCache[filename] = {
+	    spec: spec,
+	    string: js
+	};
+	if (SpecCacheLimit < Object.keys(SpecCache).length) {
+	    print("SpecCache limit " + SpecCacheLimit + " exceeded");
+	    delete SpecCache[filename]; // ToDo: LRU or somesuch.
+	}
     }
+
     return spec;
 }
 
