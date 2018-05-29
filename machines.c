@@ -52,7 +52,7 @@ static duk_ret_t providerer(duk_context *ctx) {
   const char *result = _provider(_ctx, name, cached);
   duk_push_string(ctx, result);
 
-  if (result != NULL && _provider_mode & FREE_FOR_PROVIDER) {
+  if (result != NULL && _provider_mode & MACH_FREE_FOR_PROVIDER) {
     free((char*)result);
   }
   
@@ -196,4 +196,29 @@ int mach_match(JSON pattern, JSON message, JSON bindings, JSON dst, int limit) {
   int rc = copystr(dst, limit, result);
   duk_pop(ctx);
   return rc;
+}
+
+/* API: mach_set_spec_cache intializes or disables the spec cache
+   that's maintained in Javascript.  A cache limit less than or equal
+   to zero disables the cache. */
+int mach_set_spec_cache(int limit) {
+  if (limit <= 0) {
+    duk_push_null(ctx);
+  } else {
+    duk_push_object(ctx);
+  }
+
+  int rc = duk_put_global_string(ctx, "SpecCache");
+  if (rc != 1) {
+    return MACH_SAD;
+  }
+  
+  duk_push_int(ctx, limit);
+  
+  rc = duk_put_global_string(ctx, "SpecCacheLimit");
+  if (rc != 1) {
+    return MACH_SAD;
+  }
+
+  return MACH_OKAY;
 }

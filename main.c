@@ -85,7 +85,13 @@ int main(int argc, char **argv) {
     exit(rc);
   }
 
-  mach_set_spec_provider(NULL, specProvider, FREE_FOR_PROVIDER);
+  {
+    mach_set_spec_provider(NULL, specProvider, MACH_FREE_FOR_PROVIDER);
+    int rc = mach_set_spec_cache(32);
+    if (rc != MACH_OKAY) {
+      printf("warning: failed to set spec cache size\n");
+    }
+  }
 
   int i;
   for (i = 1; i < argc; i++) {

@@ -39,21 +39,19 @@ typedef unsigned int mode;
 
 /* provider is the signature for a function that can resolve the given
    SpecName to Spec.  The first argument will be _ctx.  The second
-   argument is a string that can be resolved to a spec.  The third
-   argument is the resolution mode, which should be either RESOLVE or
-   RESOLVE_IF_CHANGED.  The latter means that the function should
-   return NULL if the Spec hasn't changed.  Otherwise the function
-   should return the requested Spec. */
+   argument is a string that represents the JSON representation of the
+   cached spec if any.  If that cached representation is the current
+   representation, then the provide can just return NULL. */
 typedef char * (*provider)(void*, const char *, const char *);
 
-#define MACH_RESOLVE 0
-#define MACH_RESOLVE_IF_CHANGED
-#define FREE_FOR_PROVIDER 1<<2
+#define MACH_FREE_FOR_PROVIDER 1<<2
 
 void mach_dump_stack(FILE *out, char *tag);
 
 /* mach_set_spec_provider registers the given function so that
-   mach_process can resolve the SpecName to a Spec. */
+   mach_process can resolve the SpecName to a Spec.  Available modes:
+   MACH_FREE_FOR_PROVIDER, which will cause the string returned by the
+   provider to be freed.  Use 0 if you don't want that. */
 void mach_set_spec_provider(void * ctx, provider f, mode m);
 
 /* mach_set_ctx does that. */
@@ -107,6 +105,9 @@ int mach_crew_update(JSON crew, JSON steppeds, JSON dst, size_t limit) ;
 /* mach_get_emitted just extracts emitted messages from the given
    steppeds map (as written by mach_crew_process). */
 int mach_get_emitted(JSON steppeds, JSON dsts[], int most, size_t limit) ;
+
+/* mach_spec_cache initializes (or disables) the SpecCache. */
+int mach_set_spec_cache(int limit) ;
 
 #ifdef __cplusplus
 }

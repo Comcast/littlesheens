@@ -1,8 +1,8 @@
-var SpecCache = {};
+var SpecCache = null;
 var SpecCacheLimit = 128;
 
 function GetSpec(filename) {
-    print("GetSpec " + filename);
+    // print("GetSpec " + filename + " (cache size " + SpecCacheLimit + ")");
     
     var cached;
     if (SpecCache) {
@@ -10,7 +10,7 @@ function GetSpec(filename) {
     }
     var cachedString = "";
     if (cached) {
-	print("GetSpec " + filename + " in cache");
+	// print("GetSpec " + filename + " in cache");
 	cachedString = cached.string;
     }
     var js = provider(filename, cachedString);
