@@ -298,5 +298,5 @@ function GetEmitted(steppeds_js) {
     }
 }
 
-sandbox('JSON.stringify({"bs":{"x":1+2},"emitted":["test"]})');
+// sandbox('JSON.stringify({"bs":{"x":1+2},"emitted":["test"]})');
 

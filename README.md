@@ -21,7 +21,7 @@ This repo is licensed under [Apache License 2.0](LICENSE).
 
 See `machines.h`.
 
-## Demo
+## A demo
 
 For now, building the demo requires two tools written in
 [Go](https://golang.org/), so you need Go installed to build this
@@ -31,12 +31,7 @@ demo.  (We'll remove this unncessary dependency soon.)
 go get github.com/bronze1man/yaml2json
 go get github.com/tdewolff/minify/cmd/minify
 make demo
-```
-
-If that works, you'll have an `mdemo` executable.
-
-```Shell
-./mdemo
+./demo
 ```
 
 ## Another demo
@@ -45,8 +40,8 @@ This demo is a simple process that reads messages from `stdin` and
 writes output to `stdout`.
 
 ```Shell
-make sheens
-make specs/turnstile.js
+make sheensio
+make specs/turnstile.js specs/double.js
 
 # Define a "crew" of two machines.
 cat<<EOF > crew.js
@@ -57,7 +52,7 @@ cat<<EOF > crew.js
 EOF
 
 # Send messages to that crew.
-cat<<EOF | ./sheens -d
+cat<<EOF | ./sheensio -d
 {"double":1}
 {"double":10}
 {"double":100}
@@ -77,13 +72,13 @@ This demo shows how to do some primitive Sheens work from Javascript
 (`demo.js`).
 
 ```Shel
-make mdemo
-./mdemo driver.js demo.js
+make demo
+./demo driver.js demo.js
 ```
 
 ## Utilities
 
-The `mdemo` executable will execute (`mach_eval`) code in files given
+The `driver` executable will execute (`mach_eval`) code in files given
 on the command line.  The environment includes what's in the directory
 `js`, so you can experiment directly with those functions.  For
 example, if the file `check.js` contains
@@ -95,7 +90,7 @@ JSON.stringify(match(null, {"likes":"?x"}, {"likes":"tacos"}, {}));
 Then
 
 ```Shell
-./mdemo check.js
+./driver check.js
 ```
 
 should write

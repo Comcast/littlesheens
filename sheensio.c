@@ -1,5 +1,6 @@
 /* Little process to read messages from stdin and write things to
-   stdout.  Expects a crew at 'crew.js'. */
+   stdout.  Expects a crew at 'crew.json'.  See 'sheensio-demo.sh' for
+   an example. */
 
 #include <stdio.h>
 #include <string.h>
@@ -111,7 +112,7 @@ int main(int argc, char **argv) {
   }
 
 
-  char *crew  = readFile("crew.js");
+  char *crew  = readFile("crew.json");
 
   {
     int line_limit = 16*1024;
