@@ -1,3 +1,7 @@
+var Cfg = {
+    MaxSteps: 100
+};
+
 var Stats = {
     GetSpec: 0,
     ParseSpec: 0,
@@ -143,7 +147,7 @@ function Process(state_js, message_js) {
 	delete state.spec;
 	var message = JSON.parse(message_js);
 	
-	var stepped = walk(null, spec, state, message);
+	var stepped = walk(Cfg, spec, state, message);
 	
 	return JSON.stringify(stepped);
     } catch (err) {
@@ -244,7 +248,7 @@ function CrewProcess(crew_js, message_js) {
 		    bs: machine.bs
 		};
 		
-		steppeds[mid] = walk(null, spec, state, message);
+		steppeds[mid] = walk(Cfg, spec, state, message);
 	    } // Otherwise just move on.
 	}
 	

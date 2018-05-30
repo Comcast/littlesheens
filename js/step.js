@@ -89,6 +89,12 @@ function step(ctx,spec,state,message) {
 //
 // For an description of the returned value, see doc for 'step'.
 function walk(ctx,spec,state,message) {
+
+    var maxSteps = 32;
+    if (ctx && ctx.MaxSteps) {
+	maxSteps = ctx.MaxSteps;
+    }
+    
     // ToDo: Get limit from ctx.
 
     if (!state) {
@@ -100,7 +106,11 @@ function walk(ctx,spec,state,message) {
 
     stepped = {to: state, consumed: false};
 
-    for (var i = 0; i < 100; i++) {
+    for (var i = 0; i <= maxSteps; i++) {
+	if (i == maxSteps) {
+	    stepped.stoppedBecause = "limited";
+	    break;
+	}
 	// print("stepping from ", i, JSON.stringify(stepped.to), JSON.stringify(message));
 	var maybe = step(ctx, spec, stepped.to, message);
 	// print("         to   ", i, JSON.stringify(maybe));
