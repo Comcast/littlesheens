@@ -26,16 +26,11 @@ int mach_open();
 void mach_close();
 
 /* mach_process takes a machine State and a Message and returns the
-   new state (if any) and any emitted messages.  (Structure currently
-   subject to change ... )
+   new state (if any) and any emitted messages and other data that
+   indicates what happened.
    
-   This function should probably evolve to return an int and write a
-   given string.
-
    Also see mach_crew_process. */
 int mach_process(JSON state, JSON message, JSON dst, int limit);
-
-typedef unsigned int mode;
 
 /* provider is the signature for a function that can resolve the given
    SpecName to Spec.  The first argument will be _ctx.  The second
@@ -44,18 +39,19 @@ typedef unsigned int mode;
    representation, then the provide can just return NULL. */
 typedef char * (*provider)(void*, const char *, const char *);
 
-#define MACH_FREE_FOR_PROVIDER 1<<2
+/* A generic mode type. */
+typedef unsigned int mode;
 
-void mach_dump_stack(FILE *out, char *tag);
+/* MACH_FREE_FOR_PROVIDER is a mode for a spec provider that indicates
+ the the caller of the provider should free the spec (JSON) that the
+ provider returns.  Useful in mach_set_spec_provider().*/
+#define MACH_FREE_FOR_PROVIDER 1<<2
 
 /* mach_set_spec_provider registers the given function so that
    mach_process can resolve the SpecName to a Spec.  Available modes:
    MACH_FREE_FOR_PROVIDER, which will cause the string returned by the
    provider to be freed.  Use 0 if you don't want that. */
 void mach_set_spec_provider(void * ctx, provider f, mode m);
-
-/* mach_set_ctx does that. */
-void mach_set_ctx(void * ctx);
 
 /* mach_eval is a utilty function that executes the given ECMAScript
    source and writes the result, which better be a string, to dst.
@@ -114,6 +110,9 @@ int mach_clear_spec_cache() ;
 
 /* mach_enable_spec_cache enables (1) or disables (0) the spec cache. */
 int mach_enable_spec_cache(int enable) ;
+
+/* A utility for seeing the current Duktape stack. */
+void mach_dump_stack(FILE *out, char *tag);
 
 #ifdef __cplusplus
 }

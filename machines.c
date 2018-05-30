@@ -31,10 +31,6 @@ mode _provider_mode;
    mach_set_ctx(). */
 void * _ctx;
 
-void mach_set_ctx(void * ctx) {
-  _ctx = ctx;
-}
-
 void mach_set_spec_provider(void * ctx, provider f, mode m) {
   _ctx = ctx;
   _provider = f;

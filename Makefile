@@ -6,7 +6,7 @@ CFLAGS=-Wall -std=c99 -fno-asynchronous-unwind-tables -ffunction-sections -Wl,--
 DUKVERSION=duktape-2.2.0
 DUK ?= ${DUKVERSION}
 
-all: mdemo
+all: mdemo sheens
 
 duk:	${DUK}
 
