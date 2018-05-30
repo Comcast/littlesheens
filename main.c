@@ -77,7 +77,14 @@ void rcprintf(int rc, char *fmt, ...) {
   checkrc(rc);
 }
 
+int printer(JSON js) {
+  printf("emitting %s", js);
+  return 0;
+}
+
 int main(int argc, char **argv) {
+
+  mach_set_ctx(mach_make_ctx());
 
   int rc = mach_open();
   if (rc != MACH_OKAY) {
@@ -294,14 +301,7 @@ int main(int argc, char **argv) {
 	}
 
 	/* Show the messages we generated. */
-	if ((rc = mach_get_emitted(steppeds, emitted, 16, dst_limit)) == MACH_OKAY) {
-	  int j;
-	  for (j = 0; j < 16; j++) {
-	    JSON msg = emitted[i];
-	    if (msg[0]) {
-	      printf("%d emitted %s\n", i, emitted[j]);
-	    }
-	  }
+	if ((rc = mach_do_emitted(steppeds, printer)) == MACH_OKAY) {
 	} else {
 	  printf("%d emitted error rc %d\n", i, rc);
 	}
@@ -343,7 +343,7 @@ int main(int argc, char **argv) {
 
   }
 
-
-  /* Free our global runtime. */
   mach_close();
+  
+  free(mach_get_ctx());
 }

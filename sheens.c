@@ -84,6 +84,8 @@ int main(int argc, char **argv) {
     }
   }
 
+  mach_set_ctx(mach_make_ctx());
+
   int rc = mach_open();
   if (rc != MACH_OKAY) {
     printf("mach_open error %d\n", rc);
@@ -177,4 +179,6 @@ int main(int argc, char **argv) {
   eval("'Times:     ' + JSON.stringify(Times.summary())");
 
   mach_close();
+
+  free(mach_get_ctx());
 }

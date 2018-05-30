@@ -5,50 +5,53 @@
 #include "machines.h"
 #include "machines_js.h"
 
-/* ctx is a global, shared duktape heap.  Sorry.  This variable is
-   initialized by mach_open(). */
-duk_context *ctx;
+typedef struct {
+  duk_context *dctx;
+  mach_provider provider;
+  mach_mode provider_mode;
+  void * provider_ctx;
+} Ctx;
+
+/* ctx is a global, shared context object. */
+Ctx *ctx;
+
+void *mach_make_ctx() {
+  return malloc(sizeof(Ctx));
+}
+
+void mach_set_ctx(void *c) {
+  ctx = c;
+}
+
+void *mach_get_ctx() {
+  return ctx;
+}
 
 void mach_dump_stack(FILE *out, char *tag) {
-  duk_push_context_dump(ctx);
-  fprintf(out, "stack_dump %s\n%s\n", tag, duk_safe_to_string(ctx, -1));
-  duk_pop(ctx);
+  duk_push_context_dump(ctx->dctx);
+  fprintf(out, "stack_dump %s\n%s\n", tag, duk_safe_to_string(ctx->dctx, -1));
+  duk_pop(ctx->dctx);
 }
 
 
-/* _provider is a global, shared C function that's invoked by
-   providerer().  _provider is set by mach_set_spec_provider(). */
-provider _provider;
-
-/* _free_for_provider is another beautiful, global, shared C function
- * that tells providered() whether to free the provided string (among
- * other things). */
-mode _provider_mode;
-
-/* _ctx is yet another global, shared C thing that currently is passed
-   as the first argument to _provider.  Despite its name, _ctx has
-   absolutely nothing to do with ctx.  Sorry.  _ctx is set by
-   mach_set_ctx(). */
-void * _ctx;
-
-void mach_set_spec_provider(void * ctx, provider f, mode m) {
-  _ctx = ctx;
-  _provider = f;
-  _provider_mode = m;
+void mach_set_spec_provider(void * pctx, mach_provider f, mach_mode m) {
+  ctx->provider_ctx = pctx;
+  ctx->provider = f;
+  ctx->provider_mode = m;
 }
 
 /* providerer is a bridge function that is exposed in the ECMAScript
    environment as the value of 'provider'.  When ECMAScript code calls
    'provider', the C function that's stored at _provider is
    invoked. */
-static duk_ret_t providerer(duk_context *ctx) {
-  const char *name = duk_to_string(ctx, 0);
-  const char *cached = duk_to_string(ctx, 1);
+static duk_ret_t providerer(duk_context *dctx) {
+  const char *name = duk_to_string(dctx, 0);
+  const char *cached = duk_to_string(dctx, 1);
   /* printf("bridge provider %s\n", s); */
-  const char *result = _provider(_ctx, name, cached);
-  duk_push_string(ctx, result);
+  const char *result = ctx->provider(ctx->provider_ctx, name, cached);
+  duk_push_string(dctx, result);
 
-  if (result != NULL && _provider_mode & MACH_FREE_FOR_PROVIDER) {
+  if (result != NULL && ctx->provider_mode & MACH_FREE_FOR_PROVIDER) {
     free((char*)result);
   }
   
@@ -112,15 +115,15 @@ static duk_ret_t sandbox(duk_context *ctx) {
    duktape heap, sets the binding for 'router' function, and maybe
    does some other initialization. */
 int mach_open() {
-  ctx = duk_create_heap_default();
+  ctx->dctx = duk_create_heap_default();
 
-  duk_print_alert_init(ctx, 0);
+  duk_print_alert_init(ctx->dctx, 0);
 
-  duk_push_c_function(ctx, providerer, 2);
-  duk_put_global_string(ctx, "provider");
+  duk_push_c_function(ctx->dctx, providerer, 2);
+  duk_put_global_string(ctx->dctx, "provider");
 
-  duk_push_c_function(ctx, sandbox, 1);
-  duk_put_global_string(ctx, "sandbox");
+  duk_push_c_function(ctx->dctx, sandbox, 1);
+  duk_put_global_string(ctx->dctx, "sandbox");
 
   if (1) {
     size_t dst_limit = 16*1024;
@@ -138,21 +141,21 @@ int mach_open() {
 /* API: mach_close, which is an exposed library function, releases the
    ECMAScript heap. */
 void mach_close() {
-  duk_destroy_heap(ctx);
-  ctx = NULL;
+  duk_destroy_heap(ctx->dctx);
+  ctx->dctx = NULL;
 }
 
 /* API: mach_eval, which is an exposed library function, evaluates the
    given string as ECMAScript in the global duktape heap. */
 int mach_eval(char *src, JSON dst, int limit) {
-  int rc = duk_peval_string(ctx, src);
+  int rc = duk_peval_string(ctx->dctx, src);
   if (rc != 0) {
-    const char *err = duk_safe_to_string(ctx, -1);
+    const char *err = duk_safe_to_string(ctx->dctx, -1);
     fprintf(stderr, "mach_eval error %s\n", err);
     return MACH_SAD;
   }
-  rc = copystr(dst, limit, (char*) duk_get_string(ctx, -1));
-  duk_pop(ctx);
+  rc = copystr(dst, limit, (char*) duk_get_string(ctx->dctx, -1));
+  duk_pop(ctx->dctx);
   return MACH_OKAY;
 }
 
@@ -165,16 +168,16 @@ int evalf(char *fmt, ...) {
   char * buf = (char*) malloc(buf_limit);
 
   vsnprintf(buf, buf_limit, fmt, args);
-  int rc = duk_peval_string(ctx, buf);
+  int rc = duk_peval_string(ctx->dctx, buf);
   va_end(args);
   free(buf);
   
   if (rc != 0) {
-    const char *err = duk_safe_to_string(ctx, -1);
+    const char *err = duk_safe_to_string(ctx->dctx, -1);
     fprintf(stderr, "evalf error %s\n", err);
     return MACH_SAD;
   }
-  duk_pop(ctx);
+  duk_pop(ctx->dctx);
   
   return MACH_OKAY;
 }
@@ -183,18 +186,18 @@ int evalf(char *fmt, ...) {
    ECMAScript function bound to Process.  Returns NULL. */
 int mach_process(JSON state, JSON message, JSON dst, int limit) {
   JSON result;
-  duk_get_global_string(ctx, "Process");
-  duk_push_string(ctx, state);
-  duk_push_string(ctx, message);
-  if (duk_pcall(ctx, 2) == DUK_EXEC_SUCCESS) {
-    result = (JSON) duk_get_string(ctx, -1);
+  duk_get_global_string(ctx->dctx, "Process");
+  duk_push_string(ctx->dctx, state);
+  duk_push_string(ctx->dctx, message);
+  if (duk_pcall(ctx->dctx, 2) == DUK_EXEC_SUCCESS) {
+    result = (JSON) duk_get_string(ctx->dctx, -1);
     /* printf("mach_process result: %s\n", result); */
   } else {
-    result = (JSON) duk_safe_to_string(ctx, -1);
+    result = (JSON) duk_safe_to_string(ctx->dctx, -1);
     fprintf(stderr, "mach_process error: %s\n", result);
   }
   int rc = copystr(dst, limit, result);
-  duk_pop(ctx);
+  duk_pop(ctx->dctx);
   return rc;
 }
 
@@ -202,20 +205,20 @@ int mach_process(JSON state, JSON message, JSON dst, int limit) {
    ECMAScript function bound to Match.  Returns NULL. */
 int mach_match(JSON pattern, JSON message, JSON bindings, JSON dst, int limit) {
   JSON result;
-  duk_get_global_string(ctx, "Match");
-  duk_push_object(ctx); // Another "ctx" ...
-  duk_push_string(ctx, pattern);
-  duk_push_string(ctx, message);
-  duk_push_string(ctx, bindings);
-  if (duk_pcall(ctx, 4) == DUK_EXEC_SUCCESS) {
-    result = (JSON) duk_get_string(ctx, -1);
+  duk_get_global_string(ctx->dctx, "Match");
+  duk_push_object(ctx->dctx); // Another "ctx" ...
+  duk_push_string(ctx->dctx, pattern);
+  duk_push_string(ctx->dctx, message);
+  duk_push_string(ctx->dctx, bindings);
+  if (duk_pcall(ctx->dctx, 4) == DUK_EXEC_SUCCESS) {
+    result = (JSON) duk_get_string(ctx->dctx, -1);
     /* printf("mach_match result: %s\n", result); */
   } else {
-    result = (JSON) duk_safe_to_string(ctx, -1);
+    result = (JSON) duk_safe_to_string(ctx->dctx, -1);
     fprintf(stderr, "mach_match error: %s\n", result);
   }
   int rc = copystr(dst, limit, result);
-  duk_pop(ctx);
+  duk_pop(ctx->dctx);
   return rc;
 }
 
@@ -239,4 +242,138 @@ int mach_enable_spec_cache(int enable) {
    statistics). */
 int mach_clear_spec_cache(int enable) {
   return evalf("SpecCache.clear()");
+}
+
+int mach_make_crew(S id, JSON dst, size_t limit) {
+  /* We'll just sprintf the answer (for now). */
+  int n = snprintf(dst, limit, "{\"id\":\"%s\",\"machines\":{}}", id);
+  if (limit < n) {
+    return MACH_TOO_BIG;
+  }
+  return MACH_OKAY;
+}
+
+int getResult(int nargs, JSON dst, size_t limit) {
+  const char *result;
+  if (duk_pcall(ctx->dctx, nargs) == DUK_EXEC_SUCCESS) {
+    result = duk_get_string(ctx->dctx, -1);
+    /* printf("result %s\n", result); */
+  } else {
+    result = duk_safe_to_string(ctx->dctx, -1);
+    printf("getResult serror %s\n", result);
+  }
+  if (result == NULL) {
+    result = "";
+  }
+  int n = strlen(result);
+  int rc = MACH_OKAY;
+  if (limit < n) {
+    rc = MACH_TOO_BIG;
+  } else {
+    strncpy(dst, result, limit);
+  }
+  duk_pop(ctx->dctx);
+  return rc;
+}
+
+int mach_set_machine(JSON crew, S id, S specRef, JSON bindings, S node, JSON dst, size_t limit) {
+  duk_get_global_string(ctx->dctx, "SetMachine");
+  duk_push_string(ctx->dctx, crew);
+  duk_push_string(ctx->dctx, id);
+  duk_push_string(ctx->dctx, specRef);
+  duk_push_string(ctx->dctx, bindings);
+  duk_push_string(ctx->dctx, node);
+  return getResult(5, dst, limit);
+}
+
+int mach_rem_machine(JSON crew, S id, JSON dst, size_t limit) {
+  duk_get_global_string(ctx->dctx, "RemMachine");
+  duk_push_string(ctx->dctx, crew);
+  duk_push_string(ctx->dctx, id);
+  return getResult(2, dst, limit);
+}
+
+int mach_crew_process(JSON crew, JSON message, JSON dst, size_t limit) {
+  duk_get_global_string(ctx->dctx, "CrewProcess");
+  duk_push_string(ctx->dctx, crew);
+  duk_push_string(ctx->dctx, message);
+  return getResult(2, dst, limit);
+}
+
+int mach_get_emitted(JSON steppeds, JSON dsts[], int most, size_t limit) {
+  /* ToDo: Stop ignoring 'most'. */
+  duk_get_global_string(ctx->dctx, "GetEmitted");
+  duk_push_string(ctx->dctx, steppeds);
+  
+  int rc = MACH_OKAY;
+  
+  if (duk_pcall(ctx->dctx, 1) == DUK_EXEC_SUCCESS) {
+     duk_size_t i, n;
+     n = duk_get_length(ctx->dctx, -1);
+     for (i = 0; i < n; i++) {
+       if (duk_get_prop_index(ctx->dctx, -1, i)) {
+	 const char * result = duk_safe_to_string(ctx->dctx, -1);
+	 duk_pop(ctx->dctx);
+	 int n = strlen(result);
+	 if (limit < n) {
+	   rc = MACH_TOO_BIG;
+	   break;
+	 }
+	 strncpy(dsts[i], result, limit);
+       } else {
+	 printf("error: no item at %d\n", (int) i);
+       }
+     }
+     for (; i < most; i++) {
+       memset(dsts[i], 0, limit);
+     }
+  } else {
+    const char *result = duk_safe_to_string(ctx->dctx, -1);
+    printf("error: %s\n", result);
+    return MACH_SAD;
+  }
+
+  duk_pop(ctx->dctx);
+
+  return rc;
+}
+
+int mach_do_emitted(JSON steppeds, int (*f)(JSON)) {
+  /* ToDo: Stop ignoring 'most'. */
+  duk_get_global_string(ctx->dctx, "GetEmitted");
+  duk_push_string(ctx->dctx, steppeds);
+  
+  int rc = MACH_OKAY;
+  
+  if (duk_pcall(ctx->dctx, 1) == DUK_EXEC_SUCCESS) {
+     duk_size_t i, n;
+     n = duk_get_length(ctx->dctx, -1);
+     for (i = 0; i < n; i++) {
+       if (duk_get_prop_index(ctx->dctx, -1, i)) {
+	 const char * result = duk_safe_to_string(ctx->dctx, -1);
+	 duk_pop(ctx->dctx);
+	 int ret = f((char *) result);
+	 if (ret) {
+	   break;
+	 }
+       } else {
+	 printf("error: no item at %d\n", (int) i);
+       }
+     }
+  } else {
+    const char *result = duk_safe_to_string(ctx->dctx, -1);
+    printf("error: %s\n", result);
+    return MACH_SAD;
+  }
+
+  duk_pop(ctx->dctx);
+
+  return rc;
+}
+
+int mach_crew_update(JSON crew, JSON stepped, JSON dst, size_t limit) {
+  duk_get_global_string(ctx->dctx, "CrewUpdate");
+  duk_push_string(ctx->dctx, crew);
+  duk_push_string(ctx->dctx, stepped);
+  return getResult(2, dst, limit);
 }

@@ -23,9 +23,9 @@ libduktape.so: CFLAGS += -fPIC
 libduktape.so: libduktape.a
 	$(CC) -shared -o $@ -Wl,--whole-archive $^ -Wl,--no-whole-archive -lm
 
-libmachines.a: ${DUK} machines.c machines.h objects.c machines_js.c Makefile
-	gcc $(CFLAGS) -c -I${DUK}/src -I${DUK}/extras/print-alert machines.c objects.c machines_js.c
-	ar rcs libmachines.a machines.o	machines_js.o objects.o
+libmachines.a: ${DUK} machines.c machines.h machines_js.c Makefile
+	gcc $(CFLAGS) -c -I${DUK}/src -I${DUK}/extras/print-alert machines.c machines_js.c
+	ar rcs libmachines.a machines.o	machines_js.o 
 
 libmachines.so: CFLAGS += -fPIC
 libmachines.so: libmachines.a
