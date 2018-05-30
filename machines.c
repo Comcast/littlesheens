@@ -167,7 +167,11 @@ int evalf(char *fmt, ...) {
   size_t buf_limit = 16*1024;
   char * buf = (char*) malloc(buf_limit);
 
-  vsnprintf(buf, buf_limit, fmt, args);
+  int wrote = vsnprintf(buf, buf_limit, fmt, args);
+  if (buf_limit <= wrote) {
+    free(buf);
+    return MACH_TOO_BIG;
+  }
   int rc = duk_peval_string(ctx->dctx, buf);
   va_end(args);
   free(buf);
