@@ -2,11 +2,13 @@
 
 # Demo use of sheensio.
 
+N=${1:-1000}
+
 set -e
 
 make sheensio
 
-(for I in `seq 1000`; do echo "{\"double\":$I}"; echo '{"input":"push"}'; echo '{"input":"coin"}'; done) > sheensio-demo.input
+(for I in `seq $N`; do echo "{\"double\":$I}"; echo '{"input":"push"}'; echo '{"input":"coin"}'; done) > sheensio-demo.input
 
 cat<<EOF > crew.json
 {"id":"simpsons",
