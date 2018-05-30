@@ -153,11 +153,34 @@ int mach_eval(char *src, JSON dst, int limit) {
   if (rc != 0) {
     const char *err = duk_safe_to_string(ctx, -1);
     fprintf(stderr, "mach_eval error %s\n", err);
-    return rc;
+    return MACH_SAD;
   }
   rc = copystr(dst, limit, (char*) duk_get_string(ctx, -1));
   duk_pop(ctx);
-  return rc;
+  return MACH_OKAY;
+}
+
+/* Utility function: Like printf except calls eval and does not return
+   a result. */
+int evalf(char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  size_t buf_limit = 16*1024;
+  char * buf = (char*) malloc(buf_limit);
+
+  vsnprintf(buf, buf_limit, fmt, args);
+  int rc = duk_peval_string(ctx, buf);
+  va_end(args);
+  free(buf);
+  
+  if (rc != 0) {
+    const char *err = duk_safe_to_string(ctx, -1);
+    fprintf(stderr, "evalf error %s\n", err);
+    return MACH_SAD;
+  }
+  duk_pop(ctx);
+  
+  return MACH_OKAY;
 }
 
 /* API: mach_process, which is an exposed library function, calls the
@@ -205,52 +228,19 @@ int mach_match(JSON pattern, JSON message, JSON bindings, JSON dst, int limit) {
 
    The default limit is 'DefaultSpecCacheLimit' in 'driver.js'. */
 int mach_set_spec_cache_limit(int limit) {
-  int rc = duk_get_global_string(ctx, "SpecCache");
-  if (rc == 0) { // Doesn't exist.
-    const char *err = duk_safe_to_string(ctx, -1);
-    fprintf(stderr, "mach_set_spec_cache_limit error %s\n", err);
-    return MACH_SAD;
-  }
-  duk_push_string(ctx, "setLimit");
-  duk_push_int(ctx, limit);
-
-  rc = duk_pcall_prop(ctx, -3, 1);
-  if (rc != DUK_EXEC_SUCCESS) {
-    return MACH_SAD;
-  }
-
-  return MACH_OKAY;
+  return evalf("SpecCache.setLimit(%d)", limit);
 }
 
-/* API: mach_enable_spec_cache enables (1) or disables (0) the spec
-   cache. */
 int mach_enable_spec_cache(int enable) {
-  int rc;
   if (enable) {
-    rc = duk_peval_string(ctx, "SpecCache.enable()");
+    return evalf("SpecCache.enable()");
   } else {
-    rc = duk_peval_string(ctx, "SpecCache.disable()");
+    return evalf("SpecCache.disable()");
   }
-
-  if (rc != 0) {
-    const char *err = duk_safe_to_string(ctx, -1);
-    fprintf(stderr, "mach_enable_spec_cache error %s\n", err);
-    return MACH_SAD;
-  }
-
-  return MACH_OKAY;
 }
 
 /* API: mach_clear_spec_cache empties the cache (and resets cache
    statistics). */
 int mach_clear_spec_cache(int enable) {
-  int rc = duk_peval_string(ctx, "SpecCache.clear()");
-
-  if (rc != 0) {
-    const char *err = duk_safe_to_string(ctx, -1);
-    fprintf(stderr, "mach_clear_spec_cache error %s\n", err);
-    return MACH_SAD;
-  }
-
-  return MACH_OKAY;
+  return evalf("SpecCache.clear()");
 }

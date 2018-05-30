@@ -101,6 +101,11 @@ int main(int argc, char **argv) {
       printf("mach_enable_spec_cache error %d\n", rc);
       exit(rc);
     }
+    rc = mach_set_spec_cache_limit(64);
+    if (rc != MACH_OKAY) {
+      printf("mach_set_spec_cache_limit error %d\n", rc);
+      exit(rc);
+    }
   }
 
 
