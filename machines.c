@@ -175,11 +175,13 @@ int evalf(char *fmt, ...) {
   if (rc != 0) {
     const char *err = duk_safe_to_string(ctx->dctx, -1);
     fprintf(stderr, "evalf error %s\n", err);
-    return MACH_SAD;
+    rc = MACH_SAD;
+  } else {
+    rc = MACH_OKAY;
   }
   duk_pop(ctx->dctx);
   
-  return MACH_OKAY;
+  return rc;
 }
 
 /* API: mach_process, which is an exposed library function, calls the
