@@ -8,7 +8,7 @@ implementation in ECMAScript that's executed by
 does sound a little odd.
 
 The stripped 32-bit demo executable is 360KB.  The supporting
-ECMAScript code (un-minified) is less than 20KB.
+ECMAScript code (un-minified) is less than 40KB.
 
 See that [Sheens repo](https://github.com/Comcast/sheens) for more
 documentation about these machines.
@@ -23,7 +23,7 @@ See `machines.h`.
 
 ## A demo
 
-For now, building the demo requires two tools written in
+For now, running the demo requires two tools written in
 [Go](https://golang.org/), so you need Go installed to build this
 demo.  (We'll remove this unncessary dependency soon.)
 
@@ -80,8 +80,8 @@ make demo
 
 The `driver` executable will execute (`mach_eval`) code in files given
 on the command line.  The environment includes what's in the directory
-`js`, so you can experiment directly with those functions.  For
-example, if the file `check.js` contains
+`js` and in the file `driver.js`, so you can experiment directly with
+those functions.  For example, if the file `check.js` contains
 
 ```Javascript
 JSON.stringify(match(null, {"likes":"?x"}, {"likes":"tacos"}, {}));
