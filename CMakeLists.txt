@@ -12,8 +12,8 @@ set(JSFILES "js/match.js" "js/sandbox.js" "js/step.js" "js/prof.js" "driver.js")
 
 add_custom_command(OUTPUT machines_js.c
                    COMMAND cat ${JSFILES} > mach_machines_jssrc
+                   COMMAND truncate -s +1 mach_machines_jssrc
                    COMMAND xxd -i mach_machines_jssrc machines_js.c
-                   COMMAND truncate -s +1 mach_machine_jssrc
                    COMMAND ${CMAKE_COMMAND} -E echo "unsigned char* mach_machines_js() { return mach_machines_jssrc; }" >> machines_js.c
                    COMMAND ${CMAKE_COMMAND} -E remove mach_machines_jssrc
                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
