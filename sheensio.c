@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
   char *crew  = readFile("crew.json");
 
   {
-    int line_limit = 16*1024;
+    size_t line_limit = 16*1024;
     char *line = malloc(line_limit);
     size_t dst_limit = 16*1024;
     char * steppeds = (char*) malloc(dst_limit);
@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
 
 
     while (1) {
-      char *s = fgets(line, line_limit, stdin);
+      char *s = fgets(line, (int) line_limit, stdin);
       if (s == NULL) {
 	break;
       }

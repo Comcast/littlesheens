@@ -64,7 +64,7 @@ int mach_process(JSON state, JSON message, JSON dst, int limit);
 /* MACH_FREE_FOR_PROVIDER is a mode for a spec provider that indicates
  the the caller of the provider should free the spec (JSON) that the
  provider returns.  Useful in mach_set_spec_provider().*/
-#define MACH_FREE_FOR_PROVIDER 1<<2
+#define MACH_FREE_FOR_PROVIDER (1UL<<2UL)
 
 /* mach_set_spec_provider registers the given function so that
    mach_process can resolve the SpecName to a Spec.  Available modes:

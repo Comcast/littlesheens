@@ -1,5 +1,8 @@
-#include<stdio.h>
-#include<duk_print_alert.h>
+#include <stdio.h>
+#include <string.h>
+#include <duk_print_alert.h>
+#include <asm/errno.h>
+#include <errno.h>
 
 #include "duktape.h"
 #include "machines.h"
@@ -13,10 +16,14 @@ typedef struct {
 } Ctx;
 
 /* ctx is a global, shared context object. */
-Ctx *ctx;
+static Ctx *ctx = NULL;
 
 void *mach_make_ctx() {
-  return malloc(sizeof(Ctx));
+  void* ret = malloc(sizeof(Ctx));
+
+  memset(ret, 0, sizeof(Ctx));
+
+  return ret;
 }
 
 void mach_set_ctx(void *c) {
@@ -59,8 +66,13 @@ static duk_ret_t providerer(duk_context *dctx) {
 }
 
 char * strdup(const char *s) {
-  size_t n = strlen(s) + 1;
-  char *acc = (char*) malloc(n);
+  size_t n;
+  char *acc;
+
+  if (s == NULL) return NULL;
+
+  n = strlen(s) + 1;
+  acc = (char*) malloc(n);
   if (acc == (char*) 0) {
     return (char*) 0;
   }
@@ -115,6 +127,29 @@ static duk_ret_t sandbox(duk_context *ctx) {
    duktape heap, sets the binding for 'router' function, and maybe
    does some other initialization. */
 int mach_open() {
+  static const size_t dst_limit = 16*1024;
+  char *dst, *src;
+  int rc;
+
+  if (ctx == NULL) {
+    return MACH_SAD;
+  }
+
+  src = mach_machines_js();
+  if (src == NULL) {
+    return MACH_SAD;
+  }
+
+  dst = malloc(dst_limit);
+  if (dst == NULL) {
+    errno = ENOMEM;
+    return MACH_SAD;
+  }
+
+  if (ctx->dctx) {
+    mach_close();
+  }
+
   ctx->dctx = duk_create_heap_default();
 
   duk_print_alert_init(ctx->dctx, 0);
@@ -125,24 +160,23 @@ int mach_open() {
   duk_push_c_function(ctx->dctx, sandbox, 1);
   duk_put_global_string(ctx->dctx, "sandbox");
 
-  if (1) {
-    size_t dst_limit = 16*1024;
-    char * dst = (char*) malloc(dst_limit);
-    char * src = mach_machines_js();
-    int rc = mach_eval(src, dst, dst_limit);
-    free(dst);
-    
-    return rc;
+  rc = mach_eval(src, dst, (int) dst_limit);
+  free(dst);
+
+  if (rc != MACH_OKAY) {
+    mach_close();
   }
 
-  return MACH_OKAY;
+  return rc;
 }
 
 /* API: mach_close, which is an exposed library function, releases the
    ECMAScript heap. */
 void mach_close() {
-  duk_destroy_heap(ctx->dctx);
-  ctx->dctx = NULL;
+  if (ctx && ctx->dctx) {
+    duk_destroy_heap(ctx->dctx);
+    ctx->dctx = NULL;
+  }
 }
 
 /* API: mach_eval, which is an exposed library function, evaluates the
