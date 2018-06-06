@@ -3,7 +3,7 @@
 set -e
 
 make specs/turnstile.js
-make sheens
+make sheensio
 
 cat<<EOF > crew.js
 {"id":"simpsons",
@@ -12,7 +12,7 @@ cat<<EOF > crew.js
    "turnstile":{"spec":"turnstile","node":"locked","bs":{}}}}
 EOF
 
-cat<<EOF | ./sheens
+cat<<EOF | ./sheensio
 {"double":1}
 {"double":10}
 {"double":100}
