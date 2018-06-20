@@ -44,7 +44,7 @@ make sheensio
 make specs/turnstile.js specs/double.js
 
 # Define a "crew" of two machines.
-cat<<EOF > crew.js
+cat<<EOF > crew.json
 {"id":"simpsons",
  "machines":{
    "doubler":{"spec":"double","node":"listen","bs":{"count":0}},
