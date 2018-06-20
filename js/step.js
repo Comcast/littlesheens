@@ -37,7 +37,7 @@ function step(ctx,spec,state,message) {
 	if (!branching || !branching.branches) {
 	    return null;
 	}
-	var against = state.bs;
+	var against = bs;
 	var consuming = false;
 	if (branching.type == "message") {
 	    if (!message) {
@@ -54,7 +54,7 @@ function step(ctx,spec,state,message) {
 		if (spec.parsepatterns) {
 		    pattern = JSON.parse(pattern);
 		}
-		var bss = match(ctx, pattern, against, state.bs);
+		var bss = match(ctx, pattern, against, bs);
 		if (!bss || bss.length == 0) {
 		    continue;
 		}
