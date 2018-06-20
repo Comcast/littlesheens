@@ -264,7 +264,7 @@ var match = function() {
 		    return [];
 		}
 	    default:
-		if (p === m) {
+		if (p == m) {
 		    return [bs];
 		}
 		return [];
