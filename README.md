@@ -40,15 +40,14 @@ This demo is a simple process that reads messages from `stdin` and
 writes output to `stdout`.
 
 ```Shell
-make sheensio
-make specs/turnstile.js specs/double.js
+make specs/turnstile.js specs/double.js sheensio
 
 # Define a "crew" of two machines.
 cat<<EOF > crew.json
 {"id":"simpsons",
  "machines":{
-   "doubler":{"spec":"double","node":"listen","bs":{"count":0}},
-   "turnstile":{"spec":"turnstile","node":"locked","bs":{}}}}
+   "doubler":{"spec":"specs/double.js","node":"listen","bs":{"count":0}},
+   "turnstile":{"spec":"specs/turnstile.js","node":"locked","bs":{}}}}
 EOF
 
 # Send messages to that crew.

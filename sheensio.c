@@ -1,5 +1,5 @@
 /* Little process to read messages from stdin and write things to
-   stdout.  Expects a crew at 'crew.json'.  See 'sheensio-demo.sh' for
+   stdout.  Expects a crew at 'crew.json'.  See 'demo.sh' for
    an example. */
 
 #include <stdio.h>
@@ -51,10 +51,9 @@ char * specProvider(void *this, const char *specname, const char * cached) {
   if (cached != NULL && cached[0]) {
     return NULL;
   }
-  
-  char filename[4096];
-  snprintf(filename, sizeof(filename), "specs/%s.js", specname);
-  char * spec = readFile(filename);
+  // char filename[4096];
+  // snprintf(filename, sizeof(filename), "specs/%s.js", specname);
+  char * spec = readFile(specname);
   return spec;
 }
 
@@ -74,6 +73,7 @@ int main(int argc, char **argv) {
 
   int useSpecCache = 0;
   int profiling = 0;
+  int stats = 0;
   for (int i = 1; i < argc; i++) {
     char *arg = argv[i];
     if (strcmp(arg, "-d") == 0) {
@@ -82,6 +82,8 @@ int main(int argc, char **argv) {
       useSpecCache = 1;
     } else if (strcmp(arg, "-p") == 0) {
       profiling = 1;
+    } else if (strcmp(arg, "-s") == 0) {
+      stats = 1;
     }
   }
 
@@ -116,14 +118,15 @@ int main(int argc, char **argv) {
 
   {
     size_t line_limit = 16*1024;
+    size_t max_emitted = 128;
     char *line = malloc(line_limit);
     size_t dst_limit = 16*1024;
     char * steppeds = (char*) malloc(dst_limit);
     char * dst = (char*) malloc(dst_limit);
 
-    char * emitted[16];
+    char * emitted[max_emitted];
     int i;
-    for (i = 0; i < 16; i++) {
+    for (i = 0; i < max_emitted; i++) {
       emitted[i] = (char*) malloc(dst_limit);
     }
 
@@ -143,9 +146,9 @@ int main(int argc, char **argv) {
 	exit(rc);
       }
       
-      rc = mach_get_emitted(steppeds, emitted, 16, dst_limit);
+      rc = mach_get_emitted(steppeds, emitted, max_emitted, dst_limit);
       if (rc == MACH_OKAY) {
-	for (i = 0; i < 16; i++) {
+	for (i = 0; i < max_emitted; i++) {
 	  JSON msg = emitted[i];
 	  if (msg[0]) {
 	    printf("out\t%s\n", emitted[i]);
@@ -169,15 +172,17 @@ int main(int argc, char **argv) {
     free(line);
     free(steppeds);
     free(dst);
-    for (i = 0; i < 16; i++) {
+    for (i = 0; i < max_emitted; i++) {
       free(emitted[i]);
     }
     free(crew);
   }
 
-  eval("'SpecCache: ' + JSON.stringify(SpecCache.summary())");
-  eval("'Stats:     ' + JSON.stringify(Stats)");
-  eval("'Times:     ' + JSON.stringify(Times.summary())");
+  if (stats) {
+    eval("'SpecCache: ' + JSON.stringify(SpecCache.summary())");
+    eval("'Stats:     ' + JSON.stringify(Stats)");
+    eval("'Times:     ' + JSON.stringify(Times.summary())");
+  }
 
   mach_close();
 
