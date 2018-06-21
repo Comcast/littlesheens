@@ -51,7 +51,7 @@ function step(ctx,spec,state,message) {
 	    var branch = branches[i];
 	    var pattern = branch.pattern;
 	    if (pattern) {
-		if (spec.parsepatterns) {
+		if (spec.parsepatterns || spec.patternsyntax == "json") {
 		    pattern = JSON.parse(pattern);
 		}
 		var bss = match(ctx, pattern, against, bs);
