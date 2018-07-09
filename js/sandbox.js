@@ -35,8 +35,15 @@ function sandboxedAction(ctx, bs, src) {
 	"  out: function(x) { emitting.push(x); }\n" + 
         "}\n" + 
 	"\n" + 
-	"var bs = (function(_) {\n" + src + "\n})(env);\n" +
-	"JSON.stringify({bs: bs, emitted: emitting});\n";
+	"var bs = (function(_) {\n" + src + "\n})(env);\n";
+
+    if (typeof safeEval !== 'undefined') { // Just for ../nodemodify.sh
+	code = "function() {\n" + code + "\n" +
+	    "return JSON.stringify({bs: bs, emitted: emitting});\n" +
+	    "}();\n";
+    } else {
+	code += "JSON.stringify({bs: bs, emitted: emitting});\n";
+    }
 
     try {
 	var result_js = sandbox(code);
