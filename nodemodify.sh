@@ -2,6 +2,9 @@
 
 # This goofy script attempts to generate a Node module based on the
 # Javascript sources in 'js/'.
+#
+# Uses https://www.npmjs.com/package/safe-eval.
+#
 
 set -e
 
