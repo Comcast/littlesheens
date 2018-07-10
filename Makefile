@@ -59,6 +59,9 @@ demo.shared: libmachines.so libduktape.so demo.c util.c util.h Makefile
 driver:	libmachines.a libduktape.a driver.c util.h util.c Makefile
 	gcc $(CFLAGS) -o driver -I${DUK}/src driver.c util.c -L. -lmachines -lduktape -lm
 
+nodejs:
+	./nodemodify.sh
+
 matchtest: driver match_test.js
 	./driver match_test.js | tee match_test.results.json | jq -r '.[]|select(.happy == false)|"\(.n): \(.case.title); wanted: \(.case.w) got: \(.got)"'
 	cat match_test.results.json | jq -r '.[]|"\(.n): elapsed \(.bench.elapsed)ms (\(.bench.rounds) rounds) \(.case.title)"'

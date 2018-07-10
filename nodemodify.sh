@@ -5,6 +5,14 @@
 #
 # Uses https://www.npmjs.com/package/safe-eval.
 #
+# After running this script, try
+#
+#   sudo npm link node-littlesheens
+#
+# Then
+#
+#   const SHEENS = require('littlesheens');
+#
 
 set -e
 
