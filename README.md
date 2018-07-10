@@ -7,8 +7,10 @@ implementation in ECMAScript that's executed by
 [Duktape](http://duktape.org/) and wrapped in a C library.  Yes, that
 does sound a little odd.
 
-The stripped 32-bit demo executable is 360KB.  The supporting
-ECMAScript code (un-minified) is less than 40KB.
+The stripped 32-bit demo executable is 360KB.  The core ECMAScript
+code (un-minified) is less than 40KB (11KB minified).  An experimental
+[nodejs](https://nodejs.org/en/) module is available (via `make
+nodejs`).
 
 See that [Sheens repo](https://github.com/Comcast/sheens) for more
 documentation about these machines.
