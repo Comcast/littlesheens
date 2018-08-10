@@ -1,22 +1,140 @@
-var SpecCache = null;
+var Cfg = {
+    MaxSteps: 100
+};
+
+var Stats = {
+    GetSpec: 0,
+    ParseSpec: 0,
+    Process: 0,
+    CrewProcess: 0,
+    CrewUpdate: 0,
+    SpecCacheHits: 0,
+    SpecCacheMisses: 0
+};
+
+var DefaultSpecCacheLimit = 128;
+
+var SpecCache = function() {
+    var enabled = false;
+    var entries = {};
+    var limit = DefaultSpecCacheLimit;
+    var size = 0;
+    var hits = 0, misses = 0;
+    var makeRoom = function(n) {
+	var keys = Object.keys(entries);
+	var evict = (size + n) - limit;
+	for (var i = 0; 0 < evict && i < keys.length; i++) {
+	    delete entries[keys[i]];
+	    size--;
+	    evict--;
+	}
+    };
+    return {
+	enable: function() {
+	    enabled = true;
+	},
+	disable: function() {
+	    enabled = false;
+	},
+	clear: function() {
+	    entries = {};
+	    size = 0;
+	    hits = 0;
+	    misses = 0;
+	},
+	setLimit: function(n) {
+	    limit = n;
+	    makeRoom(0);
+	},
+	add: function(k,v) {
+	    if (!enabled) {
+		return;
+	    }
+	    if (limit <= 0) {
+		return;
+	    }
+	    var existing = entries[k];
+	    var haveKey = false;
+	    if (existing) {
+		haveKey = true;
+	    }
+
+	    if (!haveKey) {
+		makeRoom(1);
+	    }
+	    if (!haveKey) {
+		size++;
+	    }
+	    entries[k] = v;
+	},
+	get: function(k) {
+	    if (!enabled) {
+		return null;
+	    }
+	    var v = entries[k];
+	    if (v) {
+		hits++;
+		Stats.SpecCacheHits++;
+	    } else {
+		misses++;
+		Stats.SpecCacheMisses++;
+	    }
+	    return v;
+	},
+	summary: function() {
+	    return {
+		size: size,
+		numberOfEntries: Object.keys(entries).length,
+		limit: limit,
+		hits: hits,
+		enabled: enabled,
+		misses: misses
+	    };
+	}
+    };
+}();
 
 function GetSpec(filename) {
-    if (SpecCache) {
-	var cached = SpecCache[filename];
+    Stats.GetSpec++;
+    
+    // print("GetSpec " + filename + " (cache size " + SpecCacheLimit + ")");
+    
+    var cached = SpecCache.get(filename);;
+
+    var cachedString = "";
+    if (cached) {
+	// print("GetSpec " + filename + " in cache");
+	cachedString = cached.string;
+    }
+    var js = provider(filename, cachedString);
+    // js can be null, the same as the given cachedString, or a new
+    // string.
+    
+    if (!js) {
 	if (cached) {
-	    return cached;
+	    return cached.spec;
 	}
+	var err = {filename: filename, error: "not provided"};
+	throw JSON.stringify({err: err, errstr: JSON.stringify(err)});
     }
-    var js = provider(filename);
+
+    if (js == cachedString) {
+	return cached.spec;
+    }
+    
     var spec = JSON.parse(js);
+    Stats.ParseSpec++;
     Object.seal(spec);
-    if (SpecCache) {
-	SpecCache[filename] = spec;
-    }
+    SpecCache.add(filename, {
+	    spec: spec,
+	    string: js
+    });
+
     return spec;
 }
 
 function Process(state_js, message_js) {
+    Stats.Process++;
     try {
 	var state = JSON.parse(state_js);
 
@@ -25,11 +143,11 @@ function Process(state_js, message_js) {
 	// what's required.
 	var specFilename = state.spec;
 	
+	var spec = GetSpec(state.spec);
 	delete state.spec;
-	var spec = GetSpec(machine.spec);
 	var message = JSON.parse(message_js);
 	
-	var stepped = walk(null, spec, state, message);
+	var stepped = walk(Cfg, spec, state, message);
 	
 	return JSON.stringify(stepped);
     } catch (err) {
@@ -90,6 +208,8 @@ function RemMachine(crew_js, id) {
 }
 
 function CrewProcess(crew_js, message_js) {
+    Stats.CrewProcess++;
+
     try {
 	
 	var crew = JSON.parse(crew_js);
@@ -128,7 +248,7 @@ function CrewProcess(crew_js, message_js) {
 		    bs: machine.bs
 		};
 		
-		steppeds[mid] = walk(null, spec, state, message);
+		steppeds[mid] = walk(Cfg, spec, state, message);
 	    } // Otherwise just move on.
 	}
 	
@@ -140,6 +260,7 @@ function CrewProcess(crew_js, message_js) {
 }
 
 function CrewUpdate(crew_js, steppeds_js) {
+    Stats.CrewUpdate++;
     try {
 	
 	var crew = JSON.parse(crew_js);
@@ -177,5 +298,5 @@ function GetEmitted(steppeds_js) {
     }
 }
 
-sandbox('JSON.stringify({"bs":{"x":1+2},"emitted":["test"]})');
+// sandbox('JSON.stringify({"bs":{"x":1+2},"emitted":["test"]})');
 

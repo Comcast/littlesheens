@@ -12,6 +12,8 @@ target_include_directories(duktape
                                   $<INSTALL_INTERFACE:include/duktape>
                            PRIVATE ${CMAKE_SOURCE_DIR}/extras/print-alert)
 
+target_link_libraries(duktape m)
+
 install(TARGETS duktape
         LIBRARY DESTINATION lib
         PUBLIC_HEADER DESTINATION include/duktape)

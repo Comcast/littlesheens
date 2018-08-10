@@ -1,6 +1,19 @@
+/* Copyright 2018 Comcast Cable Communications Management, LLC
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include "machines.h"
 
@@ -47,17 +60,43 @@ char* readFile(const char *filename) {
 
    This demo spec provider appends ".js" to the name.
 */
-char * specProvider(void *this, const char *specname, int mode) {
+char * specProvider(void *this, const char *specname, const char *cached) {
   printf("main spec provider specname: %s\n", specname);
 
   char file_name[4096];
   snprintf(file_name, sizeof(file_name), "specs/%s.js", specname);
 
   return readFile(file_name);
+  /* ToDo: Consider 'cached'? */
+  
   /* ToDo: Free ... */
 }
 
+#define SUCCESS (0)
+
+void checkrc(int rc) {
+  if (rc != SUCCESS) {
+    printf("non-zero rc %d\n", rc);
+    exit(rc);
+  }
+}
+
+void rcprintf(int rc, char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  vprintf(fmt, args);
+  va_end(args);
+  checkrc(rc);
+}
+
+int printer(JSON js) {
+  printf("emitting %s", js);
+  return 0;
+}
+
 int main(int argc, char **argv) {
+
+  mach_set_ctx(mach_make_ctx());
 
   int rc = mach_open();
   if (rc != MACH_OKAY) {
@@ -65,7 +104,13 @@ int main(int argc, char **argv) {
     exit(rc);
   }
 
-  mach_set_spec_provider(NULL, specProvider);
+  {
+    mach_set_spec_provider(NULL, specProvider, MACH_FREE_FOR_PROVIDER);
+    int rc = mach_set_spec_cache_limit(32);
+    if (rc != MACH_OKAY) {
+      printf("warning: failed to set spec cache size\n");
+    }
+  }
 
   int i;
   for (i = 1; i < argc; i++) {
@@ -101,7 +146,7 @@ int main(int argc, char **argv) {
        Note that we return a JSON representation of what we
        compute. */
     rc = mach_eval("JSON.stringify(1+2)", dst, dst_limit);
-    printf("eval [%d] %s\n", rc, dst);
+    rcprintf(rc, "eval %s\n", dst);
 
     /* The library function mach_process gives a message to a single
        machine.  See mach_crew_process for a function that gives a
@@ -117,7 +162,7 @@ int main(int argc, char **argv) {
 		      "{\"double\":10}", 
 		      dst, 
 		      dst_limit); 
-    printf("process [%d] %s\n",rc, dst);
+    rcprintf(rc, "process %s\n", dst);
 
     /* The library function mach_match is another utility function
        that probably would not be used in production.  This function
@@ -127,7 +172,7 @@ int main(int argc, char **argv) {
        zero or more bindings. */
 
     rc = mach_match("{\"wants\":\"?wants\"}", "{\"wants\":\"tacos\"}", "{}", dst, dst_limit);
-    printf("match [%d] %s\n", rc, dst);
+    rcprintf(rc, "match %s\n", dst);
 
     /* Make a crew object.  A crew is a set of machines. */
     char * crew = (char*) malloc(dst_limit);
@@ -135,7 +180,7 @@ int main(int argc, char **argv) {
     if (rc == MACH_OKAY) {
       printf("crew %s\n", crew);
     } else {
-      printf("rc %d\n", rc);
+      rcprintf(rc, "make_crew\n");
     }
       
     /* Add a machine to the crew.
@@ -159,7 +204,7 @@ int main(int argc, char **argv) {
     if (rc == MACH_OKAY) {
       printf("added %s\n", dst);
     } else {
-      printf("rc %d\n", rc);
+      rcprintf(rc, "set_machine\n");
     }
     /* Update our crew definition. */
     strcpy(crew, dst);
@@ -169,7 +214,7 @@ int main(int argc, char **argv) {
     if (rc == MACH_OKAY) {
       printf("removed %s\n", dst);
     } else {
-      printf("rc %d\n", rc);
+      rcprintf(rc, "rem_machine\n");
     }
     strcpy(crew, dst);
 
@@ -268,14 +313,7 @@ int main(int argc, char **argv) {
 	}
 
 	/* Show the messages we generated. */
-	if ((rc = mach_get_emitted(steppeds, emitted, 16, dst_limit)) == MACH_OKAY) {
-	  int j;
-	  for (j = 0; j < 16; j++) {
-	    JSON msg = emitted[i];
-	    if (msg[0]) {
-	      printf("%d emitted %s\n", i, emitted[j]);
-	    }
-	  }
+	if ((rc = mach_do_emitted(steppeds, printer)) == MACH_OKAY) {
 	} else {
 	  printf("%d emitted error rc %d\n", i, rc);
 	}
@@ -308,7 +346,7 @@ int main(int argc, char **argv) {
     if (rc == MACH_OKAY) {
       printf("processed %s\n", dst);
     } else {
-      printf("warning: mach_eval rc %d\n", rc);
+      rcprintf(rc, "mach_eval\n");
     }
 
     free(dst);
@@ -317,7 +355,7 @@ int main(int argc, char **argv) {
 
   }
 
-
-  /* Free our global runtime. */
   mach_close();
+  
+  free(mach_get_ctx());
 }

@@ -1,4 +1,16 @@
-/* Sheen Core C API */
+/* Copyright 2018 Comcast Cable Communications Management, LLC
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* Little Sheens C API */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -18,6 +30,35 @@ typedef char * S;
    is phonetially short for "meh-sheens", but I obviously didn't
    follow through with that brilliant idea. */
 
+/* provider is the signature for a function that can resolve the given
+   SpecName to Spec.  The first argument will be _ctx.  The second
+   argument is a string that represents the JSON representation of the
+   cached spec if any.  If that cached representation is the current
+   representation, then the provide can just return NULL. */
+typedef char * (*mach_provider)(void*, const char *, const char *);
+
+/* A generic mode type. */
+typedef unsigned int mach_mode;
+
+/* mach_make_ctx creates a new Little Sheens context (but does not use
+   it).  Call mach_set_ctx() to use the ctx you create.  For example:
+
+     mach_set_ctx(mach_make_ctx());
+     mach_open();
+     ...
+     mach_close();
+     free(mach_get_ctx());
+
+   */
+void *mach_make_ctx() ;
+
+/* mach_set_ctx sets the given context as the (global) active
+   context. */
+void mach_set_ctx(void *c) ;
+
+/* mach_get_ctx just returns the (global) active context. */  
+void *mach_get_ctx() ;
+
 /* mach_open creates and initializes the runtime.  (Currently there is
    only one global runtime.) */
 int mach_open();
@@ -26,35 +67,22 @@ int mach_open();
 void mach_close();
 
 /* mach_process takes a machine State and a Message and returns the
-   new state (if any) and any emitted messages.  (Structure currently
-   subject to change ... )
+   new state (if any) and any emitted messages and other data that
+   indicates what happened.
    
-   This function should probably evolve to return an int and write a
-   given string.
-
    Also see mach_crew_process. */
 int mach_process(JSON state, JSON message, JSON dst, int limit);
 
-/* provider is the signature for a function that can resolve the given
-   SpecName to Spec.  The first argument will be _ctx.  The second
-   argument is a string that can be resolved to a spec.  The third
-   argument is the resolution mode, which should be either RESOLVE or
-   RESOLVE_IF_CHANGED.  The latter means that the function should
-   return NULL if the Spec hasn't changed.  Otherwise the function
-   should return the requested Spec. */
-typedef char * (*provider)(void*, const char *, int);
-
-#define MACH_RESOLVE 0
-#define MACH_RESOLVE_IF_CHANGED
-
-void mach_dump_stack(FILE *out, char *tag);
+/* MACH_FREE_FOR_PROVIDER is a mode for a spec provider that indicates
+ the the caller of the provider should free the spec (JSON) that the
+ provider returns.  Useful in mach_set_spec_provider().*/
+#define MACH_FREE_FOR_PROVIDER (1UL<<2UL)
 
 /* mach_set_spec_provider registers the given function so that
-   mach_process can resolve the SpecName to a Spec. */
-void mach_set_spec_provider(void * ctx, provider f);
-
-/* mach_set_ctx does that. */
-void mach_set_ctx(void * ctx);
+   mach_process can resolve the SpecName to a Spec.  Available modes:
+   MACH_FREE_FOR_PROVIDER, which will cause the string returned by the
+   provider to be freed.  Use 0 if you don't want that. */
+void mach_set_spec_provider(void * ctx, mach_provider f, mach_mode m);
 
 /* mach_eval is a utilty function that executes the given ECMAScript
    source and writes the result, which better be a string, to dst.
@@ -104,6 +132,22 @@ int mach_crew_update(JSON crew, JSON steppeds, JSON dst, size_t limit) ;
 /* mach_get_emitted just extracts emitted messages from the given
    steppeds map (as written by mach_crew_process). */
 int mach_get_emitted(JSON steppeds, JSON dsts[], int most, size_t limit) ;
+
+/* mach_do_emitted iterates over emitted messages.  Not useful with
+   closures? */
+int mach_do_emitted(JSON steppeds, int (*f)(JSON)) ;
+
+/* mach_set_spec_cache sets the spec cache entries limit. */
+int mach_set_spec_cache_limit(int limit) ;
+
+/* mach_clear_spec_cache clears the spec cache. */
+int mach_clear_spec_cache() ;
+
+/* mach_enable_spec_cache enables (1) or disables (0) the spec cache. */
+int mach_enable_spec_cache(int enable) ;
+
+/* A utility for seeing the current Duktape stack. */
+void mach_dump_stack(FILE *out, char *tag);
 
 #ifdef __cplusplus
 }

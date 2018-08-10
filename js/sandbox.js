@@ -1,17 +1,26 @@
+/* Copyright 2018 Comcast Cable Communications Management, LLC
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // sandboxedAction wishes to be a function that can evaluate
 // ECMAScript source in a fresh, pristine, sandboxed environment.
 //
 // Returns {bs: BS, emitted: MESSAGES}.
 function sandboxedAction(ctx, bs, src) {
-    // ToDo: Different env for guards: no emitting.
-    
-    // ToDo: try/catch sandbox protection.
+    // This function calls a (presumably primitive) 'sandbox' function
+    // to do the actual work.  That function is probably in
+    // 'machines.c'.
 
-    // ToDo: A real sandbox! Should only have access to a new,
-    // standard ES5 (?) environment and whatever additional stuff
-    // specifically provided.  A sandbox environment should be
-    // discarded after use. Most likely will need a new primitive
-    // implemented in C.
+    // ToDo: Different env for guards: no emitting.
+    Times.tick("sandbox");
 
     if (!bs) {
 	bs = {};
@@ -47,6 +56,8 @@ function sandboxedAction(ctx, bs, src) {
 	// branching-based action error-handling.
 	bs.error = e;
 	return {bs: bs, error: e};
+    } finally {
+        Times.tock("sandbox");
     }
 }
 

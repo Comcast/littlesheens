@@ -2,8 +2,10 @@
 *.so
 *.a
 *.o
-mdemo
-mdemo.shared
+demo
+demo.shared
+sheensio
+driver
 libmachines.h
 machines.js
 TAGS
@@ -13,6 +15,7 @@ cmake-build-debug
 build
 machines_js.c
 duktape-*
-sheens
-crew.js
-match_test.results.js
+crew.json
+match_test.results.json
+sheensio-demo.input
+sheensio-demo.output
