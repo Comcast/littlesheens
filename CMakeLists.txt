@@ -38,6 +38,7 @@ add_dependencies(littlesheens littlesheens_js)
 set_source_files_properties("${CMAKE_SOURCE_DIR}/machines_js.c" PROPERTIES GENERATED TRUE)
 
 target_include_directories(littlesheens PUBLIC ${CMAKE_SOURCE_DIR})
+target_link_libraries(littlesheens duktape)
 
 set_target_properties(littlesheens PROPERTIES VERSION 1.0.0)
 
