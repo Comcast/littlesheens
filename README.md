@@ -133,6 +133,11 @@ That command might make the Node module `node-littlesheens`.  [This
 example](sheens.ipynb) [Jupyter](http://jupyter.org/) notebook
 demonstrates a little of the available functionality.
 
+### "Lua programs can also be little"
+
+A [start](misc/match.lua) at a [Lua](https://www.lua.org/)-based
+Little Sheens?  (Should end up in another repo if worthy.)
+
 
 ## Code of Conduct
 
