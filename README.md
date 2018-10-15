@@ -104,7 +104,9 @@ Per the documentation for `mach_eval`, the code that's executed should
 return a string.
 
 
-## Notes
+## Discssion
+
+### Routing
 
 `driver.js` implements optional routing that can present a message
 only to machines specified in that message.  If a message has a `"to"`
@@ -118,6 +120,19 @@ machine with id `doubler` (if it exists).  The message
 with ids `this` and `that` (if they exist).  Note that the entire
 message (including the `"to"` property) is still present to the target
 machines.
+
+### Nodejs
+
+Little Sheens has some crude support for [Node.js](https://nodejs.org/en/).
+
+```Shell
+make nodejs
+```
+
+That command might make the Node module `node-littlesheens`.  [This
+example](sheens.ipynb) [Jupyter](http://jupyter.org/) notebook
+demonstrates a little of the available functionality.
+
 
 ## Code of Conduct
 
