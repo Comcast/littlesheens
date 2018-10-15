@@ -49,7 +49,7 @@ specs/turnstile.js: specs/turnstile.yaml
 sheensio:	libmachines.a libduktape.a sheensio.c Makefile
 	gcc $(CFLAGS) -o sheensio -I${DUK}/src sheensio.c -L. -lmachines -lduktape -lm
 
-demo:	libmachines.a libduktape.a demo.c util.h util.c Makefile
+demo:	libmachines.a libduktape.a demo.c util.h util.c Makefile specs/double.js
 	gcc $(CFLAGS) -o demo -I${DUK}/src demo.c util.c -L. -lmachines -lduktape -lm
 
 demo.shared: libmachines.so libduktape.so demo.c util.c util.h Makefile
