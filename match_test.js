@@ -401,7 +401,7 @@ var acc = [];
 
 function canonicalBs(bs) {
     var ps = [];
-    for (p in bs) {
+    for (var p in bs) {
 	ps.push(p);
     }
     ps.sort();

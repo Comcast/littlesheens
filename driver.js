@@ -141,7 +141,7 @@ function Process(state_js, message_js) {
 	// Don't do anything to the name of the spec that will be
 	// handed to the spec provider.  Let the spec provider do
 	// what's required.
-	var specFilename = state.spec;
+	// var specFilename = state.spec;
 	
 	var spec = GetSpec(state.spec);
 	delete state.spec;
@@ -230,7 +230,7 @@ function CrewProcess(crew_js, message_js) {
 	    print("driver CrewProcess routing", JSON.stringify(targets));
 	} else {
 	    // The entire crew will see this message.
-	    targets = []
+	    targets = [];
 	    for (var mid in crew.machines) {
 		targets.push(mid);
 	    }

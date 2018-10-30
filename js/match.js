@@ -30,7 +30,7 @@ var match = function() {
 
     var copyMap = function(m) {
 	var acc = {};
-	for (p in m) {
+	for (var p in m) {
 	    acc[p] = m[p];
 	}
 	return acc;
@@ -48,11 +48,6 @@ var match = function() {
 	var acc = copyMap(bs);
 	acc[b] = v;
 	return acc;
-    };
-
-    var dbg = function(tag, x) {
-	print(tag + " " + JSON.stringify(x));
-	return x;
     };
 
     var match;
@@ -125,7 +120,7 @@ var match = function() {
 
     var mapcatMatch = function(ctx, bss, p, m) {
 	var varCount = 0;
-	for (k in p) {
+	for (var k in p) {
 	    var v = p[k];
 	    if (isVar(k)) {
 		if (0 < varCount) {
@@ -154,7 +149,7 @@ var match = function() {
 		    }
 		    return [];
 		}
-		var acc = matchWithBindings(ctx, bss, v, mv)
+		var acc = matchWithBindings(ctx, bss, v, mv);
 		if (acc.length == 0) {
 		    return [];
 		}

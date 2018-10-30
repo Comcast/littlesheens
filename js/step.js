@@ -116,7 +116,7 @@ function walk(ctx,spec,state,message) {
     var emitted = [];
     var consumed = false;
 
-    stepped = {to: state, consumed: false};
+    var stepped = {to: state, consumed: false};
 
     for (var i = 0; i <= maxSteps; i++) {
 	if (i == maxSteps) {
