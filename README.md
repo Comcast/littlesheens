@@ -138,6 +138,14 @@ demonstrates a little of the available functionality.
 A [start](misc/match.lua) at a [Lua](https://www.lua.org/)-based
 Little Sheens?  (Should end up in another repo if worthy.)
 
+## docker
+
+Use the following to set up docker container for dev environment.
+
+```
+docker build -t gears/littlesheens:latest .
+docker run -i -t -v $HOME/go:/go gears/littlesheens:latest /bin/bash
+```
 
 ## Code of Conduct
 
