@@ -45,14 +45,15 @@ func (b buffer) bytes() []byte {
 }
 
 func testBasic(t *testing.T) {
-	C.mach_open()
+	C.mach_set_ctx(C.mach_make_ctx())
+	if rc := C.mach_open(); rc != 0 {
+		t.Fatal(rc)
+	}
 
 	siz := 256
 	buf := newBuffer(siz)
 
-	rc := C.mach_eval(C.CString("JSON.stringify(1+2)"), buf.c(), C.int(siz))
-
-	if rc != 0 {
+	if rc := C.mach_eval(C.CString("JSON.stringify(1+2)"), buf.c(), C.int(siz)); rc != 0 {
 		t.Fatal(rc)
 	}
 
@@ -116,14 +117,16 @@ func testSanboxLeak(t *testing.T) {
 	}
 	siz += 3 // JSON
 
-	C.mach_open()
+	C.mach_set_ctx(C.mach_make_ctx())
+	if rc := C.mach_open(); rc != 0 {
+		t.Fatal(rc)
+	}
 
 	buf := newBuffer(siz)
 
 	then := time.Now()
 	for i := 0; i < rounds; i++ {
-		rc := C.mach_eval(C.CString(src), buf.zero().c(), C.int(siz))
-		if rc != 0 {
+		if rc := C.mach_eval(C.CString(src), buf.zero().c(), C.int(siz)); rc != 0 {
 			t.Fatal(rc, i)
 		}
 		js := buf.bytes()

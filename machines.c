@@ -166,12 +166,14 @@ int mach_open() {
 
   duk_print_alert_init(ctx->dctx, 0);
 
+  // push util c functions into js vm
   duk_push_c_function(ctx->dctx, providerer, 2);
   duk_put_global_string(ctx->dctx, "provider");
 
   duk_push_c_function(ctx->dctx, sandbox, 1);
   duk_put_global_string(ctx->dctx, "sandbox");
 
+  // eval default js libraries
   rc = mach_eval(src, dst, (int) dst_limit);
   free(dst);
 
