@@ -1,0 +1,227 @@
+name: retry
+uses: 
+- common
+doc: |-
+  Retry on errors.
+paramspecs:
+  retries:
+    doc: number of retries
+    primitiveType: number
+    default: 0
+    required: false
+  delay:
+    doc: delay between each retry
+    primitiveType: string
+    default: 3s
+    required: false
+  deadline:
+    doc: request deadline
+    primitiveType: string
+    default: 60s
+    required: false
+parsepatterns: true
+patternsyntax: json
+nodes:
+  start:
+    branching:
+      branches:
+      - target: init_retrier
+    
+  init_retrier:
+    action:
+      doc: Initialize timers map.
+      interpreter: goja
+      source: |-
+        _.bindings.timers = {};
+        if (!_.bindings.retries) {
+          _.bindings.retries = 0;
+        }
+        return _.bindings;
+    branching:
+      branches:
+      - target: listen
+    
+  listen:
+    branching:
+      type: message
+      branches:
+      - pattern: |
+          { "deadline" : true }
+        guard:
+          interpreter: goja
+          source:
+            code: |-
+              var timer_id = _.props.spanId+"_"+_.props.sheenId;
+            
+              if (timer_id in _.bindings.timers) {
+                _.bindings.error = "retry deadline exceeded";
+                return _.bindings;
+              } 
+            
+              return null;
+        target: cancel_timer
+    
+      - pattern: |
+          { "message_id" : "?message_id", "payload" : "?payload", "props" : "?props", "flow_type" : "?flow_type", "flow_id" : "?flow_id", "component_type" : "?component_type", "component_id" : "?component_id", "path_id" : "retry" }
+        guard:
+          interpreter: goja
+          source:
+            code: |-
+              var timer_id = _.props.spanId+"_"+_.props.sheenId;
+            
+              return (timer_id in _.bindings.timers) ? _.bindings : null;
+        target: in
+        
+      - pattern: |
+          { "_type_": "response", "status": "?status", "payload": "?payload" }
+        guard:
+          interpreter: goja
+          source:
+            code: |-
+              var timer_id = _.props.spanId+"_"+_.props.sheenId;
+
+              if (timer_id in _.bindings.timers) {
+                var status = _.bindings["?status"];
+                // either success or non-recoverable errors, no need to retry
+                if (500 > status && 100 <= status) {
+                  // treat 1xx, 2xx and 3xx as successful
+                  if (400 > status) {
+                    _.bindings.target = "response";
+                  } else {
+                    _.bindings.error = _.bindings["?payload"];
+                    _.bindings.target = "cancel_timer";
+                  }
+                // retry
+                } else {
+                  var count = _.bindings.timers[timer_id];
+                  if (count >= _.bindings.retries) {
+                    _.bindings.error = _.bindings["?payload"];
+                    if (0 < _.bindings.retries) {
+                      _.bindings.error += " ("+_.bindings.retries+" retries exceeded)";
+                    }
+                    _.bindings.target = "cancel_timer";
+                  } else {
+                    _.bindings.target = "set_retrier";
+                  }
+                }
+                return _.bindings;
+              }
+              return null;
+        target: "@target"
+
+  in:
+    branching:
+      branches:
+      - target: set_timer
+    
+  set_timer:
+    action:
+      interpreter: goja
+      source:
+          requires:
+          - util.js
+          - fsc.js
+          code: |-
+            var fsc_ctx = fsc_get_context();
+            var timer_id = _.props.spanId+"_"+_.props.sheenId;
+            // init deadline timer
+            if (!(timer_id in _.bindings.timers)) {
+              fsc_metric(fsc_ctx, "FlowTriggered");
+              fsc_retain_message();
+              _.bindings.timers[timer_id] = 0;
+              // create timer
+              if (0 < parse_duration(_.bindings.deadline)) {
+                var message = { "deadline": true };
+                fsc_create_timer(message, timer_id, fsc_ctx.user_params.deadline);
+              }
+            }
+            // cleanup
+            delete _.bindings.target; 
+            fsc_delete_bindings();
+            return _.bindings;
+    branching:
+      branches:
+      - target: listen
+        
+  response:
+    action:
+      interpreter: goja
+      source:
+          requires:
+          - util.js
+          - fsc.js
+          code: |-
+            // use retained message since response does not have original context
+            var fsc_ctx = fsc_get_context(fsc_restore_message());
+            var debug_payload = fsc_get_debug_payload(fsc_ctx);
+            fsc_fanout(fsc_ctx, "out", _.bindings.out, debug_payload);
+            return _.bindings;
+    branching:
+      branches:
+      - target: cancel_timer
+
+  set_retrier:
+    action:
+      interpreter: goja
+      source:
+          requires:
+          - util.js
+          - fsc.js
+          code: |-
+            var fsc_ctx = fsc_get_context(fsc_restore_message());
+            if (fsc_ctx.user_params.retries) {
+              fsc_ctx.path_id = "retry";
+              var message = fsc_make_flow_msg(fsc_ctx);
+              var timer_id = _.props.spanId+"_"+_.props.sheenId;
+              _.bindings.timers[timer_id]++;
+              if (0 < parse_duration(_.bindings.delay)) {
+                // create timer
+                fsc_create_timer(message, timer_id+"!", fsc_ctx.user_params.delay);
+              } else {
+                out(message, _.props.sheenId);
+              }
+            }
+            // cleanup
+            delete _.bindings["?status"];
+            delete _.bindings["?payload"];
+            delete _.bindings.target; 
+            fsc_delete_bindings();
+            return _.bindings;
+    branching:
+      branches:
+      - target: listen
+  
+  cancel_timer:
+    action:
+      interpreter: goja
+      source:
+          requires:
+          - util.js
+          - fsc.js
+          code: |-
+            var fsc_ctx = fsc_get_context(fsc_restore_message());
+            
+            if (_.bindings.error) {
+              fsc_handle_error(fsc_ctx);
+            } else {
+              fsc_metric(fsc_ctx, "ActionExecuted");
+            }
+            
+            // cleanup
+            var timer_id = _.props.spanId+"_"+_.props.sheenId;
+            if (0 < parse_duration(_.bindings.deadline)) {
+              fsc_delete_timer(timer_id);
+            }
+            if (0 < parse_duration(_.bindings.delay) && 0 < _.bindings.timers[timer_id]) {
+              fsc_delete_timer(timer_id+"!")
+            }
+            fsc_remove_message();
+            delete _.bindings.timers[timer_id];
+            delete _.bindings["?status"];
+            delete _.bindings["?payload"];
+            delete _.bindings.target;
+            fsc_delete_bindings();
+            return _.bindings;
+    branching:
+      branches:
+      - target: listen

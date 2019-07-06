@@ -2,13 +2,13 @@
 
 set -e
 
-make specs/double.js specs/turnstile.js sheensio
+make specs sheensio
 
 cat<<EOF > crew.json
 {"id":"simpsons",
  "machines":{
-   "doubler":{"spec":"specs/double.js","node":"listen","bs":{"count":0}},
-   "turnstile":{"spec":"specs/turnstile.js","node":"locked","bs":{}}}}
+   "doubler":{"spec":"double","node":"listen","bs":{"count":0}},
+   "turnstile":{"spec":"turnstile","node":"locked","bs":{}}}}
 EOF
 
 cat<<EOF | ./sheensio

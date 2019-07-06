@@ -17,8 +17,8 @@
 // STATE will be null when there was no transition.  'Consumed'
 // reports whether the message was consumed during the transition.
 // MESSAGES are the zero or more messages emitted by the action.
-function step(ctx,spec,state,message) {
-    Times.tick("step");
+function step(ctx,spec,state,message,props) {
+	Times.tick("step");
     try {
 	var current = state.bs;
 	var bs = current;
@@ -40,7 +40,7 @@ function step(ctx,spec,state,message) {
 	    if (interpreterAliases.indexOf(action.interpreter) < 0) {
 		throw {error: "bad interpreter", interpreter: action.interpreter};
 	    }
-	    var evaled = sandboxedAction(ctx, bs, action.source);
+	    var evaled = sandboxedAction(ctx, bs, toCode(action.source), props);
 	    bs = evaled.bs;
 	    emitted = evaled.emitted;
 	}
@@ -79,7 +79,7 @@ function step(ctx,spec,state,message) {
 		if (interpreterAliases.indexOf(branch.guard.interpreter) < 0) {
 		    throw {error: "bad guard interpreter", interpreter: branch.guard.interpreter};
 		}
-		var evaled = sandboxedAction(ctx, bs, branch.guard.source);
+		var evaled = sandboxedAction(ctx, bs, toCode(branch.guard.source), props);
 		if (!evaled.bs) {
 		    continue;
 		}
@@ -95,12 +95,28 @@ function step(ctx,spec,state,message) {
     }
 }
 
+function toCode(src) {
+	if (typeof src == 'string') {
+		return src;
+	}
+	
+	// TODO: error handling?
+	var code = src.code;
+	if (src.requires) {
+		for (var i = 0; i < src.requires.length; i++) {
+			code += GetLib(src.requires[i]);
+		}
+	}
+	
+	return code;
+}
+
 // walk advances from the given state as far as possible.
 //
 // Returns {to: STATE, consumed: BOOL, emitted: MESSAGES}.
 //
 // For an description of the returned value, see doc for 'step'.
-function walk(ctx,spec,state,message) {
+function walk(ctx,spec,state,message,props) {
 
     var maxSteps = 32;
     if (ctx && ctx.MaxSteps) {
@@ -124,7 +140,7 @@ function walk(ctx,spec,state,message) {
 	    break;
 	}
 	// print("stepping from ", i, JSON.stringify(stepped.to), JSON.stringify(message));
-	var maybe = step(ctx, spec, stepped.to, message);
+	var maybe = step(ctx, spec, stepped.to, message, props);
 	// print("         to   ", i, JSON.stringify(maybe));
 
 	if (!maybe) {

@@ -1,0 +1,80 @@
+name: light
+uses: 
+- retry
+doc: |-
+  Turns one or more lights on or off.
+paramspecs:
+  light_ids:
+    doc: array with ids of one or more lights, if array is empty, changes will be appied to all lights
+    primitiveType: string[]
+    required: true
+    default: []
+  light_state:
+    doc: light state on or off
+    primitiveType: string
+    required: true
+  dim_level:
+    doc: dim level percentage, integer value between 0 and 100
+    primitiveType: number
+    required: false
+  out:
+    doc: out channel
+    primitiveType: out
+    required: true
+  user_params:
+    doc: user params
+    primitiveType: string[]
+    required: true
+    default: ["retries", "delay", "deadline", "light_ids", "light_state", "dim_level"]
+parsepatterns: true
+patternsyntax: json
+nodes:
+  in:
+    action:
+      interpreter: goja
+      source:
+          requires:
+          - util.js
+          - fsc.js
+          code: |-
+            var fsc_ctx = fsc_get_context();
+            // prepare payload with properties configured in component
+            var light_payload = {};
+            if (fsc_ctx.user_params.dim_level) {
+              light_payload = {
+                "location": _.props.location,
+                "filters": {
+                  "id": fsc_ctx.user_params.light_ids,
+                  "iot:capabilities": [
+                    "lightSwitch",
+                    "lightDimmer"
+                  ]
+                },
+                "properties": {
+                  "lightSwitch.switch": fsc_ctx.user_params.light_state,
+                  "lightDimmer.level": fsc_ctx.user_params.dim_level
+                }
+              };
+            } else {
+              light_payload = {
+                "location": _.props.location,
+                "filters": {
+                  "id": fsc_ctx.user_params.light_ids,
+                  "iot:capabilities": [
+                    "lightSwitch"
+                  ]
+                },
+                "properties": {
+                  "lightSwitch.switch": fsc_ctx.user_params.light_state
+                }
+              };
+            }
+            var debug_payload = fsc_get_debug_payload(fsc_ctx, "light_payload", light_payload);
+            fsc_emit_debug_event(fsc_make_flow_msg(fsc_ctx, debug_payload));
+            fsc_log({"user_params" : fsc_ctx.user_params, "light_payload": light_payload});
+            raptor("action", light_payload);
+            fsc_delete_bindings();
+            return _.bindings;
+    branching:
+      branches:
+      - target: listen

@@ -34,8 +34,18 @@ void rcprintf(int rc, char *fmt, ...) {
 }
 
 int printer(JSON js) {
-  printf("emitting %s", js);
+  printf("emitting %s\n", js);
   return 0;
+}
+
+JSON getMessage(int n, int dst_limit) {
+    char * msg = (char *) malloc(dst_limit);
+    
+    //char * tmp = "{\"double\": %d}";
+    char * tmp = "{\"message\":{\"op\":\"process\",\"status\":200,\"payload\":{\"double\": %d}}}";
+    
+    snprintf(msg, dst_limit, tmp, n);
+    return msg;
 }
 
 int main(int argc, char **argv) {
@@ -52,6 +62,24 @@ int main(int argc, char **argv) {
   rc = mach_set_spec_cache_limit(32);
   if (rc != MACH_OKAY) {
     printf("warning: failed to set spec cache size\n");
+  }
+
+  rc = mach_enable_spec_cache(1);
+  if (rc != MACH_OKAY) {
+    printf("mach_enable_spec_cache error %d\n", rc);
+    exit(rc);
+  }
+
+  mach_set_lib_provider(NULL, libProvider, MACH_FREE_FOR_PROVIDER);
+  rc = mach_set_lib_cache_limit(32);
+  if (rc != MACH_OKAY) {
+    printf("warning: failed to set lib cache size\n");
+  }
+
+  rc = mach_enable_lib_cache(1);
+  if (rc != MACH_OKAY) {
+    printf("mach_enable_lib_cache error %d\n", rc);
+    exit(rc);
   }
 
   rc = evalFiles(argc, argv);
@@ -125,41 +153,66 @@ int main(int argc, char **argv) {
      The result is JSON representing the updated crew.
   */
   
-  rc = mach_set_machine(crew, "hal", "hal9000", "{}", "start", dst, dst_limit);
+  char * steppeds = (char*) malloc(dst_limit);
+
+  rc = mach_set_machine(crew, "hal", "double", "{\"count\":0}", "start", steppeds, dst_limit);
   if (rc == MACH_OKAY) {
-    printf("added %s\n", dst);
+    printf("added %s\n", steppeds);
   } else {
     rcprintf(rc, "set_machine\n");
   }
-  /* Update our crew definition. */
-  strcpy(crew, dst);
-  
-  /* Remove that machine. */
-  rc = mach_rem_machine(crew, "hal", dst, dst_limit);
+
+  rc = mach_crew_update(crew, steppeds, dst, dst_limit);
   if (rc == MACH_OKAY) {
-    printf("removed %s\n", dst);
-  } else {
-    rcprintf(rc, "rem_machine\n");
-  }
-  strcpy(crew, dst);
-  
-  /* Add another machine to the crew. */
-  rc = mach_set_machine(crew, "doubler", "double", "{\"count\":0}", "start", dst, dst_limit);
-  if (rc == MACH_OKAY) {
-    printf("added %s\n", dst);
+    printf("updated %s\n", dst);
   } else {
     printf("rc %d\n", rc);
   }
   strcpy(crew, dst);
   
+  /* Remove that machine. */
+  rc = mach_rem_machine(crew, "hal", steppeds, dst_limit);
+  if (rc == MACH_OKAY) {
+    printf("removed %s\n", steppeds);
+  } else {
+    rcprintf(rc, "rem_machine\n");
+  }
+
+  rc = mach_crew_update(crew, steppeds, dst, dst_limit);
+  if (rc == MACH_OKAY) {
+    printf("updated %s\n", dst);
+  } else {
+    printf("rc %d\n", rc);
+  }
+  strcpy(crew, dst);
+  
+  /* Add another machine to the crew. */
+  rc = mach_set_machine(crew, "doubler", "double", "{\"count\":0}", "start", steppeds, dst_limit);
+  if (rc == MACH_OKAY) {
+    printf("added %s\n", steppeds);
+  } else {
+    printf("rc %d\n", rc);
+  }
+
+  rc = mach_crew_update(crew, steppeds, dst, dst_limit);
+  if (rc == MACH_OKAY) {
+    printf("updated %s\n", dst);
+  } else {
+    printf("rc %d\n", rc);
+  }
+  strcpy(crew, dst);
+
+  JSON msg = getMessage(10, dst_limit);
+  
     /* Process a message. */
-  char * steppeds = (char*) malloc(dst_limit);
-  rc = mach_crew_process(crew, "{\"double\":10}", steppeds, dst_limit);
+  rc = mach_crew_process(crew, msg, steppeds, dst_limit);
   if (rc == MACH_OKAY) {
     printf("processed %s\n", steppeds);
   } else {
     printf("rc %d\n", rc);
   }
+
+  free(msg);
   
   /* That stepped business includes state changes for machines
      that moved as well as any messages emitted by the machines.
@@ -226,16 +279,15 @@ int main(int argc, char **argv) {
     int iterations = 10;
     int i;
     
-    char * msg = (char *) malloc(dst_limit);
-    
     for (i = 0; i < iterations; i++) {
-      snprintf(msg, dst_limit, "{\"double\": %d}", 100*i);
+      JSON msg = getMessage(100*i, dst_limit);
       rc = mach_crew_process(crew, msg, steppeds, dst_limit);
       if (rc == MACH_OKAY) {
 	printf("%d processed %s\n", i, steppeds);
       } else {
 	printf("%d processed error rc %d\n", i, rc);
       }
+      free(msg);
       
       /* Show the messages we generated. */
       if ((rc = mach_do_emitted(steppeds, printer)) == MACH_OKAY) {
@@ -252,8 +304,6 @@ int main(int argc, char **argv) {
       }
       strcpy(crew, dst);
     }
-    
-    free(msg);
   }
   
   for (i = 0; i < 16; i++) {

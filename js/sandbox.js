@@ -14,7 +14,7 @@
 // ECMAScript source in a fresh, pristine, sandboxed environment.
 //
 // Returns {bs: BS, emitted: MESSAGES}.
-function sandboxedAction(ctx, bs, src) {
+function sandboxedAction(ctx, bs, src, props) {
     // This function calls a (presumably primitive) 'sandbox' function
     // to do the actual work.  That function is probably in
     // 'machines.c'.
@@ -27,11 +27,17 @@ function sandboxedAction(ctx, bs, src) {
     }
 
     var bs_js = JSON.stringify(bs);
+    var props_js = JSON.stringify(props);
     
+    // NOTE: use `print.apply(null, arguments);` to dynamically pass input arguments
     var code = "\n" +
 	"var emitting = [];\n" + 
 	"var env = {\n" + 
 	"  bindings: " + bs_js + ",\n" +  // Maybe JSON.parse.
+	"  props: " + props_js + ",\n" +  // Maybe JSON.parse.
+	"  log: function(x) { x['log.level']='info';print(JSON.stringify(x)); },\n" + 
+	"  metric: function(x) { x['log.level']='metric';print(JSON.stringify(x)); },\n" + 
+	"  gensym: function () { var ret='';var chs='abcdefghijklmnopqrstuvwxyz0123456789';var len=chs.length;for(var i=0;i<32;i++) {ret+=chs.charAt(Math.floor(Math.random()*len));}return ret; },\n" + 
 	"  out: function(x) { emitting.push(x); }\n" + 
         "}\n" + 
 	"\n" + 

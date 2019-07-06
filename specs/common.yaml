@@ -1,0 +1,24 @@
+name: common
+uses: 
+- base
+doc: |-
+  Common component.
+paramspecs:
+  in:
+    doc: in channel
+    primitiveType: in
+    required: true
+parsepatterns: true
+patternsyntax: json
+nodes:
+  listen:
+    branching:
+      type: message
+      branches:
+      - pattern: |
+          { "message_id" : "?message_id", "payload" : "?payload", "props" : "?props", "flow_type" : "?flow_type", "flow_id" : "?flow_id", "component_type" : "?component_type", "component_id" : "?component_id", "component_out_label" : "?component_out_label", "component_in_label" : "?component_in_label", "path_id" : "?path_id" }
+        target: in
+  in:
+    branching:
+      branches:
+      - target: listen

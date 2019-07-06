@@ -31,8 +31,8 @@ typedef char * S;
    follow through with that brilliant idea. */
 
 /* provider is the signature for a function that can resolve the given
-   SpecName to Spec.  The first argument will be _ctx.  The second
-   argument is a string that represents the JSON representation of the
+   SpecName to Spec.  The first argument will be _ctx.  The second argument is Spec uri.  
+   The third argument is a string that represents the JSON representation of the
    cached spec if any.  If that cached representation is the current
    representation, then the provide can just return NULL. */
 typedef char * (*mach_provider)(void*, const char *, const char *);
@@ -84,6 +84,12 @@ int mach_process(JSON state, JSON message, JSON dst, int limit);
    provider to be freed.  Use 0 if you don't want that. */
 void mach_set_spec_provider(void * ctx, mach_provider f, mach_mode m);
 
+/* mach_set_lib_provider registers the given function so that
+   mach_process can resolve the LibName to a Lib.  Available modes:
+   MACH_FREE_FOR_PROVIDER, which will cause the string returned by the
+   provider to be freed.  Use 0 if you don't want that. */
+void mach_set_lib_provider(void * ctx, mach_provider f, mach_mode m);
+
 /* mach_eval is a utilty function that executes the given ECMAScript
    source and writes the result, which better be a string, to dst.
    Returns MACH_OKAY on success.
@@ -114,11 +120,11 @@ int limit);
 int mach_make_crew(S id, JSON dst, size_t limit);
 
 /* mach_set_machine adds or updates a machine in the given Crew.
-   Reserializes the Crew and writes it to dst. */
+   Writes a map from machine ids to steppeds as JSON to dst. */
 int mach_set_machine(JSON crew, S id, S specRef, JSON bindings, S node, JSON dst, size_t limit);
 
 /* mach_rem_machine removes the given machine from the given Crew.
-   Reserializes the Crew and writes it to dst. */
+   Writes a map from machine ids to steppeds as JSON to dst. */
 int mach_rem_machine(JSON crew, S id, JSON dst, size_t limit) ;
 
 /* mach_crew_process gives the message to the Crew for processing.
@@ -145,6 +151,15 @@ int mach_clear_spec_cache() ;
 
 /* mach_enable_spec_cache enables (1) or disables (0) the spec cache. */
 int mach_enable_spec_cache(int enable) ;
+
+/* mach_set_lib_cache sets the lib cache entries limit. */
+int mach_set_lib_cache_limit(int limit) ;
+
+/* mach_clear_lib_cache clears the lib cache. */
+int mach_clear_lib_cache() ;
+
+/* mach_enable_lib_cache enables (1) or disables (0) the lib cache. */
+int mach_enable_lib_cache(int enable) ;
 
 /* A utility for seeing the current Duktape stack. */
 void mach_dump_stack(FILE *out, char *tag);

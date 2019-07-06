@@ -199,36 +199,53 @@ int main(int argc, char **argv) {
 
        The result is JSON representing the updated crew.
     */
+    char * steppeds = (char*) malloc(dst_limit);
 
-    rc = mach_set_machine(crew, "hal", "hal9000", "{}", "start", dst, dst_limit);
+    rc = mach_set_machine(crew, "hal", "hal9000", "{}", "start", steppeds, dst_limit);
     if (rc == MACH_OKAY) {
-      printf("added %s\n", dst);
+      printf("added %s\n", steppeds);
     } else {
       rcprintf(rc, "set_machine\n");
     }
-    /* Update our crew definition. */
+    rc = mach_crew_update(crew, steppeds, dst, dst_limit);
+    if (rc == MACH_OKAY) {
+      printf("updated %s\n", dst);
+    } else {
+      printf("rc %d\n", rc);
+    }
     strcpy(crew, dst);
 
     /* Remove that machine. */
-    rc = mach_rem_machine(crew, "hal", dst, dst_limit);
+    rc = mach_rem_machine(crew, "hal", steppeds, dst_limit);
     if (rc == MACH_OKAY) {
-      printf("removed %s\n", dst);
+      printf("removed %s\n", steppeds);
     } else {
       rcprintf(rc, "rem_machine\n");
+    }
+    rc = mach_crew_update(crew, steppeds, dst, dst_limit);
+    if (rc == MACH_OKAY) {
+      printf("updated %s\n", dst);
+    } else {
+      printf("rc %d\n", rc);
     }
     strcpy(crew, dst);
 
     /* Add another machine to the crew. */
-    rc = mach_set_machine(crew, "doubler", "double", "{\"count\":0}", "start", dst, dst_limit);
+    rc = mach_set_machine(crew, "doubler", "double", "{\"count\":0}", "start", steppeds, dst_limit);
     if (rc == MACH_OKAY) {
       printf("added %s\n", dst);
+    } else {
+      printf("rc %d\n", rc);
+    }
+    rc = mach_crew_update(crew, steppeds, dst, dst_limit);
+    if (rc == MACH_OKAY) {
+      printf("updated %s\n", dst);
     } else {
       printf("rc %d\n", rc);
     }
     strcpy(crew, dst);
 
     /* Process a message. */
-    char * steppeds = (char*) malloc(dst_limit);
     rc = mach_crew_process(crew, "{\"double\":10}", steppeds, dst_limit);
     if (rc == MACH_OKAY) {
       printf("processed %s\n", steppeds);

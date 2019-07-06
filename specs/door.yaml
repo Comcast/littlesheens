@@ -1,0 +1,73 @@
+name: door
+uses:
+- trigger
+doc: |-
+  Listens for external door events. When a door event is spotted it will be wrapped in a flow message
+  envelope and forwarded on the out channel. The door_ids parameter can be configured to listen for a
+  specific door, a set of specific doors or any door. Similarly the door_state parameter can be used to
+  limit listening to specific door states such as open or closed.
+paramspecs:
+  door_ids:
+    doc: array with ids of one or more doors, if array is empty, any door will be accepted
+    primitiveType: string[]
+    required: true
+    default: []
+  door_state:
+    doc: array with allowed door states, if array is empty, any state will be accepted
+    primitiveType: string[]
+    required: false
+    default: []
+  user_params:
+    doc: user params
+    primitiveType: string[]
+    required: true
+    default: ["door_ids", "door_state"]
+parsepatterns: true
+patternsyntax: json
+nodes:
+  listen:
+    branching:
+      type: message
+      branches:
+      - pattern: |
+          { "properties": { "contactSensor.state" : "?state", "contactSensor.attachedTo":"door" }, "meta": { "id" : "?id", "friendlyName" : "?friendlyName", "iot:capabilities" : [ "contactSensor" ] }, "metadata" : { "timestamp" : "?timestamp" } }
+        guard:
+          interpreter: goja
+          source:
+            requires:
+            - fsc.js
+            code: |-
+              var fsc_ctx = fsc_get_context();
+              var doorok = false;
+              if (fsc_ctx.user_params.door_ids.length == 0) {
+                // any door
+                doorok = true;
+              } else {
+                // any door of a subset of doors
+                for (var i=0; i<fsc_ctx.user_params.door_ids.length; i++) {
+                  if (_.bindings["?id"] == fsc_ctx.user_params.door_ids[i]) {
+                    doorok = true;
+                    break;
+                  }
+                }
+              }
+              // check door state
+              if (doorok && fsc_ctx.user_params.door_state.length >= 0) {
+                doorok = false;
+                if (fsc_ctx.user_params.door_state.length == 0) {
+                  // any door
+                  doorok = true;
+                } else {
+                  for (var i=0; i<fsc_ctx.user_params.door_state.length; i++) {
+                    if (_.bindings["?state"] == fsc_ctx.user_params.door_state[i]) {
+                      doorok = true;
+                      break;
+                    }
+                  }
+                }
+              }
+              if (!doorok) {
+                return null;
+              }
+              return _.bindings;
+        target: forward

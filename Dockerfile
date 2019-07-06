@@ -3,6 +3,10 @@ FROM golang:latest AS gobuild
 ENV CODE_DIR /go/src/github.com/Comcast/littlesheens
 ENV LD_LIBRARY_PATH ${CODE_DIR}
 
+RUN apt-get update -y
+RUN apt-get install -y xxd
+RUN apt-get install -y jq
+
 # COPY . ${CODE_DIR}/
 # COPY .git ${CODE_DIR}/.git
 WORKDIR ${CODE_DIR}/

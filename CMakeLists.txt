@@ -74,7 +74,7 @@ if (NOT TARGET_PLATFORM STREQUAL "yocto")
   add_executable(mdemo main.c)
   target_link_libraries(mdemo littlesheens duktape m)
 
-  add_executable(sheensio sheensio.c)
+  add_executable(sheensio sheensio.c util.c util.h)
   target_link_libraries(sheensio littlesheens duktape m)
   
   install(TARGETS demo DESTINATION bin)

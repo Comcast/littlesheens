@@ -1,0 +1,41 @@
+name: trigger
+uses:
+- base
+doc: |-
+  Trigger component.
+paramspecs:
+  out:
+    doc: out channel
+    primitiveType: out
+    required: true
+parsepatterns: true
+patternsyntax: json
+nodes:    
+  forward:
+    action:
+      interpreter: goja
+      source:
+        requires:
+        - util.js
+        - fsc.js
+        code: |-
+          // trigger component has to initiate flow message
+          var fsc_ctx = fsc_get_context();
+          fsc_ctx.payload = JSON.parse(JSON.stringify(_.props.message.payload));
+          delete fsc_ctx.payload.flow_session_id;
+          _.props.message.payload.flow_hop_counter = 0;
+          fsc_ctx.props = {};
+          fsc_ctx.message_id = _.gensym();
+          var debug_payload = fsc_get_debug_payload(fsc_ctx);
+          fsc_emit_debug_event(fsc_make_flow_msg(fsc_ctx, debug_payload));
+          fsc_log({"user_params" : fsc_ctx.user_params});
+          fsc_fanout(fsc_ctx, "out", _.bindings.out, debug_payload);
+          if (fsc_ctx.location && fsc_ctx.flow_id) {
+            _.metric("FlowEvaluated", "location", fsc_ctx.location, "flowId", fsc_ctx.flow_id);
+          }
+          // cleanup
+          fsc_delete_all_bindings();
+          return _.bindings;
+    branching:
+      branches:
+      - target: listen

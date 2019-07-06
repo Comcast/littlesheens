@@ -1,0 +1,38 @@
+name: parent
+doc: |-
+  A machine that double numbers and protests requests for doubling non-numbers.
+parsepatterns: true
+nodes:
+  start:
+    action:
+      interpreter: ecmascript
+      source: |-
+        _.log("started!!! props:", JSON.stringify(_.props));
+        return _.bindings;
+    branching:
+      branches:
+      - target: listen
+  listen:
+    branching:
+      type: message
+      branches:
+      - pattern: |
+          {"double": "?x"}
+        target: complain
+  complain:
+    action:
+      interpreter: ecmascript
+      source: |-
+        _.out({bad: _.bindings["?x"]});
+        return _.bindings;
+    branching:
+      branches:
+        - target: cleanup
+  end:
+    action:
+      interpreter: ecmascript
+      source: |-
+        _.log("removed!!! props: ", JSON.stringify(_.props));
+        return _.bindings;
+    branching:
+      branches: ''

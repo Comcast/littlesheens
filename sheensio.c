@@ -18,8 +18,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <time.h> 
 
 #include "machines.h"
+#include "util.h"
 
 int logging = 0;
 
@@ -31,42 +33,6 @@ void lgf(const char *fmt, ...) {
   }
 
   va_end(args);
-}
-
-char* readFile(const char *filename) {
-  lgf("readFile '%s'\n", filename);
-  
-  char * buffer = 0;
-  long length;
-  FILE * f = fopen(filename, "rb");
-  
-  if (f) {
-    fseek(f, 0, SEEK_END);
-    length = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    buffer = malloc(length);
-    if (buffer) {
-      fread(buffer, 1, length, f);
-    }
-    fclose(f);
-  } else {
-    lgf("couldn't read '%s'\n", filename);
-    exit(1);
-  }
-
-  buffer[length-1] = 0;
-
-  return buffer;
-}
-
-char * specProvider(void *this, const char *specname, const char * cached) {
-  if (cached != NULL && cached[0]) {
-    return NULL;
-  }
-  // char filename[4096];
-  // snprintf(filename, sizeof(filename), "specs/%s.js", specname);
-  char * spec = readFile(specname);
-  return spec;
 }
 
 void eval(char * src) {
@@ -125,8 +91,21 @@ int main(int argc, char **argv) {
     }
   }
 
+  mach_set_lib_provider(NULL, libProvider, MACH_FREE_FOR_PROVIDER);
+  if (useSpecCache) {
+    rc = mach_enable_lib_cache(1);
+    if (rc != MACH_OKAY) {
+      printf("mach_enable_lib_cache error %d\n", rc);
+      exit(rc);
+    }
+    rc = mach_set_lib_cache_limit(64);
+    if (rc != MACH_OKAY) {
+      printf("mach_set_lib_cache_limit error %d\n", rc);
+      exit(rc);
+    }
+  }
 
-  char *crew  = readFile("crew.json");
+  char *src  = readFile("crew.json");
 
   {
     size_t line_limit = 16*1024;
@@ -135,6 +114,11 @@ int main(int argc, char **argv) {
     size_t dst_limit = 16*1024;
     char * steppeds = (char*) malloc(dst_limit);
     char * dst = (char*) malloc(dst_limit);
+    
+    // allocate bigger buffer for crew so it can be updated later
+    char * crew = (char*) malloc(dst_limit);
+    strcpy(crew, src);
+    free(src);
 
     char * emitted[max_emitted];
     int i;
@@ -142,15 +126,23 @@ int main(int argc, char **argv) {
       emitted[i] = (char*) malloc(dst_limit);
     }
 
+    int count=0;
 
     while (1) {
+      clock_t cp0 = clock(); 
       char *s = fgets(line, (int) line_limit, stdin);
-      if (s == NULL) {
+      if (s == NULL || 0 == strcmp(s, "\n")) {
 	break;
       }
       lgf("in\t%s", line); /* Already has newline. */
 
+      clock_t cp1 = clock();
+      printf("got: %f\n",((double)cp1-cp0)/CLOCKS_PER_SEC); 
+    
       rc = mach_crew_process(crew, line, steppeds, dst_limit);
+      clock_t cp2 = clock(); 
+      printf("processed: %f\n",((double)cp2-cp1)/CLOCKS_PER_SEC); 
+    
       if (rc == MACH_OKAY) {
 	lgf("steps\t%s\n", steppeds);
       } else {
@@ -170,6 +162,9 @@ int main(int argc, char **argv) {
 	printf("emitted error %d\n", rc);
 	exit(rc);
       }
+    
+      clock_t cp3 = clock(); 
+      printf("emitted: %f\n",((double)cp3-cp2)/CLOCKS_PER_SEC);
 
       rc = mach_crew_update(crew, steppeds, dst, dst_limit);
       if (rc == MACH_OKAY) {
@@ -179,6 +174,12 @@ int main(int argc, char **argv) {
 	  exit(rc);
       }
       strcpy(crew, dst);
+    
+      clock_t cp4 = clock(); 
+      printf("updated: %f\n",((double)cp4-cp3)/CLOCKS_PER_SEC);
+    
+      count++;
+      printf("count: %d, %f\n", count, ((double)cp4-cp0)/CLOCKS_PER_SEC);
     }
 
     free(line);

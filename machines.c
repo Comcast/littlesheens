@@ -25,6 +25,9 @@ typedef struct {
   mach_provider provider;
   mach_mode provider_mode;
   void * provider_ctx;
+  mach_provider lib_provider;
+  mach_mode lib_provider_mode;
+  void * lib_provider_ctx;
 } Ctx;
 
 /* ctx is a global, shared context object. */
@@ -59,6 +62,12 @@ void mach_set_spec_provider(void * pctx, mach_provider f, mach_mode m) {
   ctx->provider_mode = m;
 }
 
+void mach_set_lib_provider(void * pctx, mach_provider f, mach_mode m) {
+  ctx->lib_provider_ctx = pctx;
+  ctx->lib_provider = f;
+  ctx->lib_provider_mode = m;
+}
+
 /* providerer is a bridge function that is exposed in the ECMAScript
    environment as the value of 'provider'.  When ECMAScript code calls
    'provider', the C function that's stored at _provider is
@@ -67,11 +76,39 @@ static duk_ret_t providerer(duk_context *dctx) {
   const char *name = duk_to_string(dctx, 0);
   const char *cached = duk_to_string(dctx, 1);
   /* printf("bridge provider %s\n", s); */
-  const char *result = ctx->provider(ctx->provider_ctx, name, cached);
-  duk_push_string(dctx, result);
+  
+  if (NULL == ctx->provider) {
+    duk_push_string(dctx, NULL);
+  } else {
+    const char *result = ctx->provider(ctx->provider_ctx, name, cached);
+    duk_push_string(dctx, result);
 
-  if (result != NULL && ctx->provider_mode & MACH_FREE_FOR_PROVIDER) {
-    free((char*)result);
+    if (result != NULL && ctx->provider_mode & MACH_FREE_FOR_PROVIDER) {
+      free((char*)result);
+    }
+  }
+  
+  return 1;
+}
+
+/* providerer is a bridge function that is exposed in the ECMAScript
+   environment as the value of 'provider'.  When ECMAScript code calls
+   'provider', the C function that's stored at _provider is
+   invoked. */
+static duk_ret_t lib_providerer(duk_context *dctx) {
+  const char *name = duk_to_string(dctx, 0);
+  const char *cached = duk_to_string(dctx, 1);
+  /* printf("bridge provider %s\n", s); */
+  
+  if (NULL == ctx->lib_provider) {
+    duk_push_string(dctx, NULL);
+  } else {
+    const char *result = ctx->lib_provider(ctx->lib_provider_ctx, name, cached);
+    duk_push_string(dctx, result);
+
+    if (result != NULL && ctx->lib_provider_mode & MACH_FREE_FOR_PROVIDER) {
+      free((char*)result);
+    }
   }
   
   return 1;
@@ -117,6 +154,10 @@ static duk_ret_t sandbox(duk_context *ctx) {
   const char *src = duk_to_string(ctx, 0);
 
   duk_context *box = duk_create_heap_default();
+  
+  // enable print and alert
+  duk_print_alert_init(box, 0);
+
   duk_push_string(box, src);
 
   duk_ret_t rc = duk_peval(box);
@@ -169,6 +210,9 @@ int mach_open() {
   // push util c functions into js vm
   duk_push_c_function(ctx->dctx, providerer, 2);
   duk_put_global_string(ctx->dctx, "provider");
+
+  duk_push_c_function(ctx->dctx, lib_providerer, 2);
+  duk_put_global_string(ctx->dctx, "lib_provider");
 
   duk_push_c_function(ctx->dctx, sandbox, 1);
   duk_put_global_string(ctx->dctx, "sandbox");
@@ -298,6 +342,29 @@ int mach_clear_spec_cache(int enable) {
   return evalf("SpecCache.clear()");
 }
 
+/* API: mach_set_lib_cache_limit sets the lib cache limit.  This
+   function does NOT enable the cache if it is not already enabled.
+
+   The default limit is 'DefaultLibCacheLimit' in 'driver.js'. */
+int mach_set_lib_cache_limit(int limit) {
+  return evalf("LibCache.setLimit(%d)", limit);
+}
+
+int mach_enable_lib_cache(int enable) {
+  if (enable) {
+    return evalf("LibCache.enable()");
+  } else {
+    return evalf("LibCache.disable()");
+  }
+}
+
+/* API: mach_clear_lib_cache empties the cache (and resets cache
+   statistics). */
+int mach_clear_lib_cache(int enable) {
+  return evalf("LibCache.clear()");
+}
+
+
 int mach_make_crew(S id, JSON dst, size_t limit) {
   /* We'll just sprintf the answer (for now). */
   int n = snprintf(dst, limit, "{\"id\":\"%s\",\"machines\":{}}", id);
@@ -314,7 +381,7 @@ int getResult(int nargs, JSON dst, size_t limit) {
     /* printf("result %s\n", result); */
   } else {
     result = duk_safe_to_string(ctx->dctx, -1);
-    printf("getResult serror %s\n", result);
+    printf("getResult error %s\n", result);
   }
   if (result == NULL) {
     result = "";

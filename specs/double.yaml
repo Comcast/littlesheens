@@ -1,12 +1,10 @@
 name: double
+uses: 
+- parent
 doc: |-
   A machine that double numbers and protests requests for doubling non-numbers.
 parsepatterns: true
 nodes:
-  start:
-    branching:
-      branches:
-      - target: listen
   listen:
     branching:
       type: message
@@ -24,25 +22,16 @@ nodes:
             bs["?x"] = f;
             return bs;
         target: double
-      - pattern: |
-          {"double": "?x"}
-        target: complain
   double:
     action:
       interpreter: ecmascript
-      source: |-
-        _.out({doubled: _.bindings["?x"]*2});
-        _.bindings.count++;
-        return _.bindings;
-    branching:
-      branches:
-        - target: cleanup
-  complain:
-    action:
-      interpreter: ecmascript
-      source: |-
-        _.out({bad: _.bindings["?x"]});
-        return _.bindings;
+      source:
+        requires:
+          - util.js 
+        code: |-
+          _.out({doubled: double(_.bindings["?x"])});
+          _.bindings.count++;
+          return _.bindings;
     branching:
       branches:
         - target: cleanup

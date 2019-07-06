@@ -1,0 +1,176 @@
+name: base
+doc: |-
+  Base component.
+paramspecs:
+  debug:
+    doc: debug flag
+    primitiveType: bool
+    default: false
+    required: true
+  log:
+    doc: log flag
+    primitiveType: bool
+    default: true
+    required: true
+  funcional_type:
+    doc: functional type 
+    primitiveType: string
+    required: true
+    default: "action"
+  flow_type:
+    doc: flow template id
+    primitiveType: string
+    required: true
+  flow_id:
+    doc: flow instance id
+    primitiveType: string
+    required: true
+  flow_merged:
+    doc: whether flow is merged
+    primitiveType: bool
+    required: true
+    default: false
+  component_label:
+    doc: component label
+    primitiveType: string
+    required: true
+  component_type:
+    doc: component type
+    primitiveType: string
+    required: true
+  component_id:
+    doc: component instance id or sheen id
+    primitiveType: string
+    required: true
+  err:
+    doc: error channel
+    primitiveType: out
+    required: true
+parsepatterns: true
+patternsyntax: json
+nodes:
+  start:
+    branching:
+      branches:
+      - target: listen
+  listen:
+    branching:
+      type: message
+      branches:
+      - pattern: |
+          { "flow_id" : "?flow_id", "action" : "disable" }
+        guard:
+          interpreter: goja
+          source:
+            requires:
+            - fsc.js
+            code: |-
+              if (_.bindings.flow_id === _.bindings["?flow_id"]) {
+                fsc_log({"info": "disable"});
+                return _.bindings;
+              }
+              return null;
+        target: listen_enable
+      - pattern: |
+          { "flow_id" : "?flow_id", "action" : "reset" }
+        guard:
+          interpreter: goja
+          source: |-
+            if (_.bindings.flow_id === _.bindings["?flow_id"]) {
+              return _.bindings;
+            }
+            return null;
+        target: reset
+      - pattern: |
+          { "flow_id" : "?flow_id", "action" : "debug", "on" : "?on" }
+        guard:
+          interpreter: goja
+          source: |-
+            if (_.bindings.flow_id === _.bindings["?flow_id"]) {
+              return _.bindings;
+            }
+            return null;
+        target: debug
+      - pattern: |
+          { "flow_id" : "?flow_id", "action" : "log", "on" : "?on" }
+        guard:
+          interpreter: goja
+          source: |-
+            if (_.bindings.flow_id === _.bindings["?flow_id"]) {
+              return _.bindings;
+            }
+            return null;
+        target: log
+  listen_enable:
+    branching:
+      type: message
+      branches:
+      - pattern: |
+          { "flow_id" : "?flow_id", "action" : "enable" }
+        guard:
+          interpreter: goja
+          source:
+            requires:
+            - fsc.js
+            code: |-
+              if (_.bindings.flow_id === _.bindings["?flow_id"]) {
+                fsc_log({"info": "enable"});
+                return _.bindings;
+              }
+              return null;
+        target: listen
+  reset:
+    action:
+      interpreter: goja
+      source:
+        requires:
+        - fsc.js
+        code: |-
+          fsc_log({"info": "reset"});
+          // delete all state information in bindings but retain initial bindings
+          fsc_delete_bindings();
+          // if other cleanup is necessary (timers, facts, etc.) do it here...
+          return _.bindings;
+    branching:
+      branches:
+      - target: start
+  debug:
+    action:
+      interpreter: goja
+      source:
+        requires:
+        - fsc.js
+        code: |-
+          fsc_log({"info": "debug", "debug_before": _.bindings.debug, "on": _.bindings["?on"]});
+          fsc_debug(_.bindings["?on"]);
+          delete _.bindings["?on"];
+          return _.bindings;
+    branching:
+      branches:
+      - target: listen
+  error:
+    action:
+      interpreter: goja
+      source:
+        requires:
+        - fsc.js
+        code: |-
+          // error handling goes here...
+          fsc_handle_error();
+          return _.bindings;
+    branching:
+      branches:
+      - target: listen
+  log:
+    action:
+      interpreter: goja
+      source:
+        requires:
+        - fsc.js
+        code: |-
+          fsc_log({"info": "log", "log_before": _.bindings.log, "on": _.bindings["?on"]});
+          fsc_set_log(_.bindings["?on"]);
+          return _.bindings;
+    branching:
+      branches:
+      - target: listen

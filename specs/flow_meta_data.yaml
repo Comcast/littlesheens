@@ -1,0 +1,49 @@
+name: flow_meta_data
+doc: |-
+  Flow meta data
+paramspecs:
+  debug:
+    doc: debug flag
+    primitiveType: bool
+    default: false
+    required: true
+  log:
+    doc: log flag
+    primitiveType: bool
+    default: true
+    required: true
+  funcional_type:
+    doc: funcional type
+    primitiveType: string
+    required: true
+    default: "metadata"
+  flow_type:
+    doc: flow type
+    primitiveType: string
+    required: true
+  flow_id:
+    doc: flow id
+    primitiveType: string
+    required: true
+  component_label:
+    doc: component label
+    required: true
+  component_type:
+    doc: component type
+    primitiveType: string
+    required: true
+  component_id:
+    doc: component id
+    primitiveType: string
+    required: true
+  user_params:
+    doc: user params
+    primitiveType: string[]
+    required: true
+    default: []
+parsepatterns: true
+patternsyntax: json
+nodes:
+  start:
+    branching:
+      branches: ''
