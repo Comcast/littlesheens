@@ -104,7 +104,7 @@ Per the documentation for `mach_eval`, the code that's executed should
 return a string.
 
 
-## Discssion
+## Discussion
 
 ### Routing
 
