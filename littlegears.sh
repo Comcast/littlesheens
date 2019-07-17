@@ -109,7 +109,7 @@ cat<<EOF > crew.json
 }
 EOF
 
-rm nohup.out
+rm -f nohup.out
 rm sheensio.fifo
 mkfifo sheensio.fifo
 nohup ./sheensio <sheensio.fifo &

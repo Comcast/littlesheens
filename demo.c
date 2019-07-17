@@ -162,6 +162,9 @@ int main(int argc, char **argv) {
     rcprintf(rc, "set_machine\n");
   }
 
+  rc = mach_do_emitted(steppeds, printer);
+  printf("do emitted: %d\n", rc);
+
   rc = mach_crew_update(crew, steppeds, dst, dst_limit);
   if (rc == MACH_OKAY) {
     printf("updated %s\n", dst);
