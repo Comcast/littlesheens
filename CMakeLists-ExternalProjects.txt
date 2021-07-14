@@ -2,6 +2,28 @@ include(ExternalProject)
 
 set(DUK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/duktape")
 
+# TODO: Move to common place if littlesheens supports more External Projects
+set(CMAKE_COMMON_ARGS)
+if (DEFINED CMAKE_TOOLCHAIN_FILE)
+    # Forward the toolchain file if it was provided
+    set(CMAKE_COMMON_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+                          -DCMAKE_INSTALL_PREFIX=${CMAKE_ISTALL_PREFIX})
+else()
+    # Otherwise lean into toolchain environment setup.
+    set(CMAKE_COMMON_ARGS -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+                          -DCMAKE_AR=${CMAKE_AR}
+                          -DCMAKE_RANLIB=${CMAKE_RANLIB}
+                          -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                          -DCMAKE_OBJCOPY=${CMAKE_OBJCOPY}
+                          -DCMAKE_STRIP=${CMAKE_STRIP}
+                          -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+                          -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+                          -DCMAKE_SHARED_LINKER_FLAGS=${CMAKE_SHARED_LINKER_FLAGS}
+                          -DCMAKE_MODULE_LINKER_FLAGS=${CMAKE_MODULE_LINKER_FLAGS}
+                          -DCMAKE_EXE_LINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}
+                          -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX})
+endif()
+
 ExternalProject_Add(duktape-ext
     URL https://github.com/svaarala/duktape-releases/raw/master/duktape-2.2.0.tar.xz
     URL_MD5 0f7c9fac5547f7f3fc1c671fc90b2ccf
@@ -11,7 +33,7 @@ ExternalProject_Add(duktape-ext
 
     PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt-duktape ${CMAKE_CURRENT_SOURCE_DIR}/duktape/CMakeLists.txt
 
-    CMAKE_ARGS "${CMAKE_ARGS}" "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}"
+    CMAKE_ARGS "${CMAKE_COMMON_ARGS}"
 
     TEST_COMMAND ""
     )
